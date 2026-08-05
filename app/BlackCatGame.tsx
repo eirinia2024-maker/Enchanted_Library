@@ -80,6 +80,7 @@ export default function BlackCatGame({ onClose }: { onClose: () => void }) {
   const [hearts, setHearts] = useState(3);
   const [score, setScore] = useState(0);
   const [level, setLevel] = useState(1);
+  const [showLevelSelect, setShowLevelSelect] = useState(false);
 
   const setPhase = useCallback((value: Phase) => {
     phaseRef.current = value;
@@ -603,7 +604,18 @@ export default function BlackCatGame({ onClose }: { onClose: () => void }) {
   };
 
   const setDirection = (direction: "left" | "right", pressed: boolean) => { keysRef.current[direction] = pressed; };
-  const restart = () => { checkpointRef.current = 0; levelRef.current = 1; setLevel(1); setFalls(0); setHearts(3); setScore(0); resetCat(0); setPhase("playing"); };
+  const restart = () => { checkpointRef.current = 0; levelRef.current = 1; setLevel(1); setFalls(0); setHearts(3); setScore(0); setShowLevelSelect(false); resetCat(0); setPhase("playing"); };
+  const startLevel = (selectedLevel: number) => {
+    checkpointRef.current = 0;
+    levelRef.current = selectedLevel;
+    setLevel(selectedLevel);
+    setFalls(0);
+    setHearts(3);
+    setScore(0);
+    setShowLevelSelect(false);
+    resetCat(0);
+    setPhase("playing");
+  };
   const continueJourney = () => {
     if (level >= LEVELS.length) { restart(); return; }
     checkpointRef.current = 0;
@@ -611,6 +623,7 @@ export default function BlackCatGame({ onClose }: { onClose: () => void }) {
     levelRef.current = nextLevel;
     setLevel(nextLevel);
     setHearts(3);
+    setShowLevelSelect(false);
     resetCat(0);
     setPhase("playing");
   };
@@ -620,7 +633,7 @@ export default function BlackCatGame({ onClose }: { onClose: () => void }) {
       <section className="arcade-shell" role="dialog" aria-modal="true" aria-label="Midnight Return game">
         <header className="arcade-header">
           <div><span>ENCHANTED LIBRARY · PRESENT SIMPLE A1</span><h2>Midnight Return</h2></div>
-          <p>Climb from the courtyard to the witch&apos;s open window.</p>
+          <p>{phase === "won" && level === LEVELS.length ? "The black cat made it home." : "Climb from the courtyard to the witch's open window."}</p>
           <div className="arcade-actions"><button disabled={!['playing', 'paused'].includes(phase)} onClick={() => setPhase(phaseRef.current === "paused" ? "playing" : "paused")} aria-label="Pause game">{phase === "paused" ? "▶" : "Ⅱ"}</button><button onClick={onClose} aria-label="Close game">×</button></div>
         </header>
         <div className="game-stage">
@@ -638,7 +651,32 @@ export default function BlackCatGame({ onClose }: { onClose: () => void }) {
               {selected && selected !== QUESTIONS[questionIndex].correct && <small>Not quite. Look at the subject and try again.</small>}
             </div>
           )}
-          {phase === "won" && <div className="win-screen"><span>★</span><h3>{level < LEVELS.length ? `Level ${LEVELS[level - 1].label} complete!` : "Home at last!"}</h3><p>{level < LEVELS.length ? "The next courtyard is faster and more dangerous." : `The black cat completed every level. Score: ${score}`}</p><button onClick={continueJourney}>{level < LEVELS.length ? "Next level" : "Play again"}</button></div>}
+          {phase === "won" && level < LEVELS.length && <div className="win-screen"><span>★</span><h3>{`Level ${LEVELS[level - 1].label} complete!`}</h3><p>The next courtyard is faster and more dangerous.</p><button onClick={continueJourney}>Next level</button></div>}
+          {phase === "won" && level === LEVELS.length && (
+            <div className="final-win-screen">
+              {!showLevelSelect ? (
+                <div className="final-win-copy">
+                  <span className="final-win-star" aria-hidden="true">★</span>
+                  <h3>Home at last!</h3>
+                  <p>The black cat has returned safely to the witch.</p>
+                  <div className="final-score">Score: <strong>{score}</strong></div>
+                  <div className="final-win-actions">
+                    <button className="primary" onClick={restart}>Play again</button>
+                    <button onClick={() => setShowLevelSelect(true)}>Level select</button>
+                    <button className="library" onClick={onClose}>Back to library</button>
+                  </div>
+                </div>
+              ) : (
+                <div className="final-level-select">
+                  <span>CHOOSE A COURTYARD</span>
+                  <h3>Level select</h3>
+                  <p>Return to any part of the midnight journey.</p>
+                  <div>{LEVELS.map((item, index) => <button key={item.label} onClick={() => startLevel(index + 1)}>{item.label}</button>)}</div>
+                  <button className="level-select-back" onClick={() => setShowLevelSelect(false)}>← Back</button>
+                </div>
+              )}
+            </div>
+          )}
         </div>
         <footer className="game-controls">
           <div className="keys-guide"><span><kbd>←</kbd><kbd>→</kbd> move</span><span><kbd>SPACE</kbd> jump</span><span><kbd>P</kbd> pause</span></div>
