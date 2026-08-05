@@ -176,7 +176,7 @@ export default function AlchemyWordGame({ onClose }: { onClose: () => void }) {
       className={activeLetter === letter ? "active" : ""}
       style={{ "--liquid": tubeColors[index].liquid, "--glow": tubeColors[index].glow, "--hue": `${index * 29}deg` } as CSSProperties}
     >
-      <i className="vial-art" aria-hidden="true" />
+      <i className="vial-art" aria-hidden="true" style={{ backgroundImage: "url('/assets/alchemy-vial-v2.png')" }} />
       <span className="tube-letter">{displayLetter(letter)}</span>
     </button>
   );
