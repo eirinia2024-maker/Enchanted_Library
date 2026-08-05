@@ -47,7 +47,7 @@ const games: Game[] = [
     category: "Grammar Maze",
     level: "A1–A2",
     description: "Answer grammar questions, explore changing routes and find the hidden treasure room.",
-    image: "/assets/library-labyrinth-cover-v1.png",
+    image: "/assets/library-labyrinth-cover-v2.png",
     challenge: "Knowledge is the key.",
     answers: [],
     correct: "",
@@ -137,7 +137,7 @@ export default function Home() {
           <div className="cards">
             {visibleGames.map((game) => (
               <article className="game-card" key={game.id}>
-                <button className={`cover ${game.id === "library-labyrinth" ? "cover-labyrinth" : ""}`} onClick={() => openGame(game)} aria-label={`Open ${game.title}`}>
+                <button className="cover" onClick={() => openGame(game)} aria-label={`Open ${game.title}`}>
                   <Image src={game.image} alt="" fill sizes="(max-width: 700px) 100vw, 390px" />
                   <span className="cover-play">▶</span>
                 </button>
