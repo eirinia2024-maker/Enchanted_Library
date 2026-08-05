@@ -48,9 +48,9 @@ type MouseHazard = { x: number; y: number; direction: number };
 const LEVELS = [
   { label: "1–1", bins: [{ x: 120, y: 480 }, { x: 240, y: 438 }, { x: 360, y: 396 }], fenceY: 350, ropes: [290, 220], windowX: 735, windowY: 150, ropeSway: 3, dogSpeed: 1.3, mouseDivisor: 14, mouseCount: 1, throwMin: 3500, throwRange: 1700, projectileGravity: .1 },
   { label: "1–2", bins: [{ x: 720, y: 480 }, { x: 590, y: 438 }, { x: 455, y: 396 }], fenceY: 350, ropes: [300, 240, 180], windowX: 225, windowY: 120, ropeSway: 4, dogSpeed: 1.5, mouseDivisor: 12, mouseCount: 2, throwMin: 3100, throwRange: 1500, projectileGravity: .11 },
-  { label: "1–3", bins: [{ x: 105, y: 480 }, { x: 270, y: 438 }, { x: 430, y: 396 }], fenceY: 350, ropes: [305, 255, 205, 155], windowX: 675, windowY: 105, ropeSway: 6, dogSpeed: 1.7, mouseDivisor: 10, mouseCount: 2, throwMin: 2600, throwRange: 1250, projectileGravity: .13 },
-  { label: "1–4", bins: [{ x: 735, y: 490 }, { x: 610, y: 458 }, { x: 470, y: 426 }, { x: 320, y: 394 }], fenceY: 345, ropes: [305, 263, 221, 179, 137], windowX: 360, windowY: 90, ropeSway: 8, dogSpeed: 1.95, mouseDivisor: 9, mouseCount: 3, throwMin: 2200, throwRange: 1000, projectileGravity: .15 },
-  { label: "1–5", bins: [{ x: 100, y: 490 }, { x: 255, y: 458 }, { x: 430, y: 426 }, { x: 610, y: 394 }], fenceY: 345, ropes: [305, 268, 231, 194, 157, 120], windowX: 730, windowY: 75, ropeSway: 10, dogSpeed: 2.25, mouseDivisor: 8, mouseCount: 4, throwMin: 1750, throwRange: 800, projectileGravity: .17 },
+  { label: "1–3", bins: [{ x: 105, y: 480 }, { x: 270, y: 438 }, { x: 430, y: 396 }], fenceY: 350, ropes: [305, 255, 205, 155], windowX: 675, windowY: 105, ropeSway: 6, dogSpeed: 1.7, mouseDivisor: 10, mouseCount: 3, throwMin: 2600, throwRange: 1250, projectileGravity: .13 },
+  { label: "1–4", bins: [{ x: 735, y: 490 }, { x: 610, y: 458 }, { x: 470, y: 426 }, { x: 320, y: 394 }], fenceY: 345, ropes: [305, 263, 221, 179, 137], windowX: 360, windowY: 90, ropeSway: 8, dogSpeed: 1.95, mouseDivisor: 9, mouseCount: 4, throwMin: 2200, throwRange: 1000, projectileGravity: .15 },
+  { label: "1–5", bins: [{ x: 100, y: 490 }, { x: 255, y: 458 }, { x: 430, y: 426 }, { x: 610, y: 394 }], fenceY: 345, ropes: [305, 268, 231, 194, 157, 120], windowX: 730, windowY: 75, ropeSway: 10, dogSpeed: 2.25, mouseDivisor: 8, mouseCount: 5, throwMin: 1750, throwRange: 800, projectileGravity: .17 },
 ];
 
 export default function BlackCatGame({ onClose }: { onClose: () => void }) {
@@ -153,9 +153,9 @@ export default function BlackCatGame({ onClose }: { onClose: () => void }) {
         spritesRef.current[key] = layer;
       };
     };
-    loadSprite("cat", "/assets/cat-source-v2.png");
-    loadSprite("dog", "/assets/bulldog-source-v2.png");
-    loadSprite("mouse", "/assets/mouse-source-v2.png");
+    loadSprite("cat", "/assets/cat-run-sheet-v2.png");
+    loadSprite("dog", "/assets/bulldog-run-sheet-v2.png");
+    loadSprite("mouse", "/assets/mouse-run-sheet-v2.png");
     loadSprite("witch", "/assets/witch-source-v2.png");
     loadSprite("residents", "/assets/residents-source-v2.png");
   }, []);
@@ -211,13 +211,14 @@ export default function BlackCatGame({ onClose }: { onClose: () => void }) {
       return (x - closestX) ** 2 + (y - closestY) ** 2 < radius ** 2;
     };
 
-    const drawCat = (x: number, y: number, facing: number, blinking: boolean) => {
+    const drawCat = (x: number, y: number, facing: number, blinking: boolean, frame: number) => {
       const sprite = spritesRef.current.cat;
       if (sprite) {
+        const cellWidth = sprite.width / 3;
         ctx.save();
         if (blinking) ctx.globalAlpha = .35;
         ctx.translate(x + CAT.width / 2, 0); ctx.scale(facing, 1);
-        ctx.drawImage(sprite, -46, y - 29, 92, 62);
+        ctx.drawImage(sprite, frame * cellWidth, 0, cellWidth, sprite.height, -52, y - 35, 104, 70);
         ctx.restore();
         return;
       }
@@ -254,11 +255,13 @@ export default function BlackCatGame({ onClose }: { onClose: () => void }) {
       }
     };
 
-    const drawMouse = (x: number, y: number, direction: number) => {
+    const drawMouse = (x: number, y: number, direction: number, time: number) => {
       const sprite = spritesRef.current.mouse;
       if (sprite) {
+        const cellWidth = sprite.width / 3;
+        const frame = Math.floor(time / 95 + x / 48) % 3;
         ctx.save(); ctx.translate(x, 0); ctx.scale(direction, 1);
-        ctx.drawImage(sprite, -25, y - 35, 50, 42); ctx.restore();
+        ctx.drawImage(sprite, frame * cellWidth, 0, cellWidth, sprite.height, -27, y - 38, 54, 45); ctx.restore();
         return;
       }
       ctx.save(); ctx.translate(x, y); ctx.scale(direction, 1);
@@ -269,11 +272,13 @@ export default function BlackCatGame({ onClose }: { onClose: () => void }) {
       ctx.fillStyle = "#f5cf5b"; ctx.fillRect(11, -10, 2, 2); ctx.restore();
     };
 
-    const drawDog = (x: number, direction: number) => {
+    const drawDog = (x: number, direction: number, time: number) => {
       const sprite = spritesRef.current.dog;
       if (sprite) {
+        const cellWidth = sprite.width / 3;
+        const frame = Math.floor(time / 115) % 3;
         ctx.save(); ctx.translate(x, 0); ctx.scale(direction, 1);
-        ctx.drawImage(sprite, -62, 443, 124, 76); ctx.restore();
+        ctx.drawImage(sprite, frame * cellWidth, 0, cellWidth, sprite.height, -68, 441, 136, 78); ctx.restore();
         return;
       }
       ctx.save(); ctx.translate(x, 500); ctx.scale(direction, 1);
@@ -327,8 +332,8 @@ export default function BlackCatGame({ onClose }: { onClose: () => void }) {
       ctx.fillStyle = "#6d3e55"; ctx.fillRect(ledge.x, ledge.y, ledge.w, 9);
       ctx.fillStyle = "#f0bd55"; ctx.fillRect(ledge.x, ledge.y, ledge.w, 3);
 
-      mice.forEach((mouse) => drawMouse(mouse.x, mouse.y, mouse.direction));
-      drawDog(dogRef.current.x, dogRef.current.direction);
+      mice.forEach((mouse) => drawMouse(mouse.x, mouse.y, mouse.direction, time));
+      drawDog(dogRef.current.x, dogRef.current.direction, time);
 
       drawWitch(time, ledge);
 
@@ -347,7 +352,8 @@ export default function BlackCatGame({ onClose }: { onClose: () => void }) {
       });
 
       const cat = playerRef.current;
-      drawCat(cat.x, cat.y, cat.facing, performance.now() < cat.invincibleUntil && Math.floor(time / 90) % 2 === 0);
+      const catFrame = !cat.grounded ? 2 : Math.abs(cat.vx) > .5 ? Math.floor(time / 105) % 3 : 0;
+      drawCat(cat.x, cat.y, cat.facing, performance.now() < cat.invincibleUntil && Math.floor(time / 90) % 2 === 0, catFrame);
 
       ctx.fillStyle = "#f7ead7ed"; ctx.fillRect(17, 16, 184, 74);
       ctx.strokeStyle = "#bf8d3f"; ctx.lineWidth = 3; ctx.strokeRect(17, 16, 184, 74);
@@ -401,8 +407,8 @@ export default function BlackCatGame({ onClose }: { onClose: () => void }) {
         }
 
         dogRef.current.x += dogRef.current.direction * difficulty.dogSpeed * dt;
-        if (dogRef.current.x > 900) dogRef.current.direction = -1;
-        if (dogRef.current.x < 500) dogRef.current.direction = 1;
+        if (dogRef.current.x > 928) { dogRef.current.x = 928; dogRef.current.direction = -1; }
+        if (dogRef.current.x < 72) { dogRef.current.x = 72; dogRef.current.direction = 1; }
 
         if (time > nextThrowRef.current) {
           const residentXs = difficulty.windowX > 500 ? [260, 455, 610] : [390, 610, 805];
