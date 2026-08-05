@@ -1,6 +1,7 @@
 "use client";
 
-import { useId } from "react";
+import { useEffect, useId } from "react";
+import { createPortal } from "react-dom";
 
 type InstructionStep = {
   icon: string;
@@ -20,18 +21,33 @@ type Props = {
 export default function GameInstructions({ open, kicker, title, intro, steps, onClose }: Props) {
   const titleId = useId();
 
-  if (!open) return null;
+  useEffect(() => {
+    if (!open) return;
 
-  return (
-    <div className="instructions-layer" onMouseDown={onClose}>
+    const blockGameKeys = (event: KeyboardEvent) => {
+      event.stopImmediatePropagation();
+      if (event.key === "Escape") {
+        event.preventDefault();
+        onClose();
+      }
+    };
+
+    window.addEventListener("keydown", blockGameKeys, true);
+    return () => window.removeEventListener("keydown", blockGameKeys, true);
+  }, [onClose, open]);
+
+  if (!open || typeof document === "undefined") return null;
+
+  return createPortal(
+    <div className="instructions-layer" onClick={onClose}>
       <section
         className="instructions-card"
         role="dialog"
         aria-modal="true"
         aria-labelledby={titleId}
-        onMouseDown={(event) => event.stopPropagation()}
+        onClick={(event) => event.stopPropagation()}
       >
-        <button className="instructions-close" onClick={onClose} aria-label="Закрыть инструкции">×</button>
+        <button className="instructions-close" onClick={onClose} aria-label="Закрыть инструкции" autoFocus>×</button>
         <div className="instructions-seal" aria-hidden="true">?</div>
         <span className="instructions-kicker">{kicker}</span>
         <h2 id={titleId}>{title}</h2>
@@ -46,6 +62,7 @@ export default function GameInstructions({ open, kicker, title, intro, steps, on
         </ol>
         <button className="instructions-confirm" onClick={onClose}>Понятно, играть</button>
       </section>
-    </div>
+    </div>,
+    document.body,
   );
 }
