@@ -708,7 +708,7 @@ export default function BlackCatGame({ onClose }: { onClose: () => void }) {
                   <h3>Home at last!</h3>
                   <p>The black cat has returned safely to the witch.</p>
                   <div className="final-score">Score: <strong>{score}</strong></div>
-                  <div className="dragon-secret"><span>DRAGON&apos;S SECRET</span><strong>His favourite sweets are chocolate candies.</strong></div>
+                  <div className="dragon-secret"><span>DRAGON&apos;S SECRET</span><strong>His favourite sweets are <mark>chocolate candies</mark>.</strong></div>
                   <div className="final-win-actions">
                     <button className="primary" onClick={restart}>Play again</button>
                     <button onClick={() => setShowLevelSelect(true)}>Level select</button>

@@ -268,7 +268,7 @@ export default function AlchemyWordGame({ onClose }: { onClose: () => void }) {
                   <small>{phase === "won" ? "РЕЦЕПТ ЗАВЕРШЁН" : "ЛАБОРАТОРИЯ ЖДЁТ"}</small>
                   <h3>{phase === "won" ? "Все слова сварены!" : "Котёл перегрелся"}</h3>
                   <p>{phase === "won" ? "Шесть слов превратились в настоящее словарное зелье." : "Пять неверных ингредиентов. Начни рецепт ещё раз."}</p>
-                  {phase === "won" && <div className="dragon-secret"><span>DRAGON&apos;S SECRET</span><strong>A reading potion glows moonlight blue.</strong></div>}
+                  {phase === "won" && <div className="dragon-secret"><span>DRAGON&apos;S SECRET</span><strong>A reading potion glows <mark>moonlight blue</mark>.</strong></div>}
                   <div className="alchemy-result-stats"><span>{topic?.title}</span><strong>{phase === "won" ? `${ROUND_SIZE} / ${ROUND_SIZE} слов` : `${mistakes} ошибок`}</strong><b>{letterCase === "upper" ? "ABC" : "abc"}</b></div>
                   <div className="alchemy-result-actions"><button onClick={restart}>Повторить тему</button><button onClick={() => setPhase("topics")}>Выбрать другую</button><button onClick={onClose}>В библиотеку</button></div>
                 </div>
