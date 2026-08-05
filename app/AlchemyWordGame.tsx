@@ -1,7 +1,7 @@
 "use client";
 
 import Image from "next/image";
-import { useMemo, useState, type CSSProperties } from "react";
+import { useCallback, useEffect, useMemo, useState, type CSSProperties } from "react";
 
 type Word = { en: string; ru: string };
 type Topic = { id: string; title: string; icon: string; color: string; words: Word[] };
@@ -93,7 +93,7 @@ export default function AlchemyWordGame({ onClose }: { onClose: () => void }) {
   const [mistakes, setMistakes] = useState(0);
   const [effect, setEffect] = useState<Effect>("idle");
   const [activeLetter, setActiveLetter] = useState("");
-  const [message, setMessage] = useState("Выбери первую букву");
+  const [message, setMessage] = useState("Выбери пробирку или нажми букву");
   const [letterCase, setLetterCase] = useState<LetterCase>("upper");
   const currentWord = round[wordIndex];
 
@@ -109,14 +109,14 @@ export default function AlchemyWordGame({ onClose }: { onClose: () => void }) {
     setProgress("");
     setMistakes(0);
     setEffect("idle");
-    setMessage("Выбери первую букву");
+    setMessage("Выбери пробирку или нажми букву");
     setPhase("playing");
   };
 
   const restart = () => topic && startTopic(topic);
   const displayLetter = (letter: string) => letterCase === "upper" ? letter.toUpperCase() : letter.toLowerCase();
 
-  const chooseLetter = (letter: string) => {
+  const chooseLetter = useCallback((letter: string) => {
     if (phase !== "playing" || effect !== "idle" || !currentWord) return;
     const lower = letter.toLowerCase();
     const expected = currentWord.en[progress.length];
@@ -135,7 +135,7 @@ export default function AlchemyWordGame({ onClose }: { onClose: () => void }) {
             setProgress("");
             setEffect("idle");
             setActiveLetter("");
-            setMessage("Новое слово — начинаем");
+            setMessage("Новое слово — выбери пробирку или нажми букву");
           }
         }, 950);
       } else {
@@ -154,7 +154,18 @@ export default function AlchemyWordGame({ onClose }: { onClose: () => void }) {
       if (nextMistakes >= 5) setPhase("lost");
       else setEffect("idle");
     }, 900);
-  };
+  }, [currentWord, effect, mistakes, phase, progress, round.length, wordIndex]);
+
+  useEffect(() => {
+    const handleKeyboardLetter = (event: KeyboardEvent) => {
+      if (event.repeat || event.ctrlKey || event.altKey || event.metaKey) return;
+      if (!/^[a-z]$/i.test(event.key)) return;
+      event.preventDefault();
+      chooseLetter(event.key.toUpperCase());
+    };
+    window.addEventListener("keydown", handleKeyboardLetter);
+    return () => window.removeEventListener("keydown", handleKeyboardLetter);
+  }, [chooseLetter]);
 
   const renderTube = (letter: string, index: number) => (
     <button
@@ -175,7 +186,7 @@ export default function AlchemyWordGame({ onClose }: { onClose: () => void }) {
       <section className="alchemy-shell" role="dialog" aria-modal="true" aria-label="Собери слово">
         <header className="alchemy-header">
           <div><span>ENCHANTED LIBRARY · A1 MOVERS</span><h2>Собери слово</h2></div>
-          <p>{phase === "topics" ? "Выбери раздел словаря" : "Добавляй ингредиенты в правильном порядке"}</p>
+          <p>{phase === "topics" ? "Выбери раздел словаря" : "Выбирай пробирки или набирай слово на клавиатуре"}</p>
           <button onClick={onClose} aria-label="Закрыть игру">×</button>
         </header>
 
