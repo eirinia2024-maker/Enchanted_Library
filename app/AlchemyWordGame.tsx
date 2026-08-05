@@ -2,6 +2,7 @@
 
 import Image from "next/image";
 import { useCallback, useEffect, useMemo, useState, type CSSProperties } from "react";
+import GameInstructions from "./GameInstructions";
 
 type Word = { en: string; ru: string };
 type Topic = { id: string; title: string; icon: string; color: string; words: Word[] };
@@ -95,6 +96,7 @@ export default function AlchemyWordGame({ onClose }: { onClose: () => void }) {
   const [activeLetter, setActiveLetter] = useState("");
   const [message, setMessage] = useState("Выбери пробирку или нажми букву");
   const [letterCase, setLetterCase] = useState<LetterCase>("upper");
+  const [showInstructions, setShowInstructions] = useState(false);
   const currentWord = round[wordIndex];
 
   const tubeColors = useMemo(() => ALPHABET.map((_, index) => ({
@@ -187,7 +189,7 @@ export default function AlchemyWordGame({ onClose }: { onClose: () => void }) {
         <header className="alchemy-header">
           <div><span>ENCHANTED LIBRARY · A1 MOVERS</span><h2>Собери слово</h2></div>
           <p>{phase === "topics" ? "Выбери раздел словаря" : "Выбирай пробирки или набирай слово на клавиатуре"}</p>
-          <button onClick={onClose} aria-label="Закрыть игру">×</button>
+          <div className="alchemy-header-actions"><button className="instructions-trigger" onClick={() => setShowInstructions(true)} aria-label="Инструкции">?</button><button onClick={onClose} aria-label="Закрыть игру">×</button></div>
         </header>
 
         {phase === "topics" ? (
@@ -267,6 +269,20 @@ export default function AlchemyWordGame({ onClose }: { onClose: () => void }) {
           </div>
         )}
       </section>
+      <GameInstructions
+        open={showInstructions}
+        onClose={() => setShowInstructions(false)}
+        kicker="A1 MOVERS · ПРАВИЛА"
+        title="Как сварить английское слово"
+        intro="Переводи слова со свитка и добавляй буквенные ингредиенты в котёл в правильном порядке."
+        steps={[
+          { icon: "1", title: "Выбери тему и регистр", text: "Открой один из шести разделов словаря и реши, играть с заглавными или строчными буквами." },
+          { icon: "⌨", title: "Собирай слово", text: "Нажимай на пробирки на боковых столах или вводи английские буквы прямо с клавиатуры." },
+          { icon: "✓", title: "Следи за котлом", text: "Каждая верная буква появляется на котле. Ингредиенты нужно добавлять строго слева направо." },
+          { icon: "☁", title: "Не ошибайся", text: "Неверная буква вызывает магический выброс и полностью сбрасывает прогресс текущего слова." },
+          { icon: "★", title: "Свари 6 слов", text: "Пять ошибок завершают попытку. Собери все шесть случайных слов, чтобы закончить рецепт." },
+        ]}
+      />
     </div>
   );
 }

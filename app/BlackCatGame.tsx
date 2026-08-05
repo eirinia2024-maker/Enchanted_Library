@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
+import GameInstructions from "./GameInstructions";
 
 type Question = { prompt: string; options: string[]; correct: string };
 
@@ -81,11 +82,25 @@ export default function BlackCatGame({ onClose }: { onClose: () => void }) {
   const [score, setScore] = useState(0);
   const [level, setLevel] = useState(1);
   const [showLevelSelect, setShowLevelSelect] = useState(false);
+  const [showInstructions, setShowInstructions] = useState(false);
+  const resumeAfterInstructionsRef = useRef(false);
 
   const setPhase = useCallback((value: Phase) => {
     phaseRef.current = value;
     setPhaseState(value);
   }, []);
+
+  const openInstructions = () => {
+    resumeAfterInstructionsRef.current = phaseRef.current === "playing";
+    if (resumeAfterInstructionsRef.current) setPhase("paused");
+    setShowInstructions(true);
+  };
+
+  const closeInstructions = () => {
+    setShowInstructions(false);
+    if (resumeAfterInstructionsRef.current) setPhase("playing");
+    resumeAfterInstructionsRef.current = false;
+  };
 
   const nextQuestion = useCallback(() => {
     if (questionBag.current.length === 0) questionBag.current = QUESTIONS.map((_, i) => i).sort(() => Math.random() - 0.5);
@@ -634,7 +649,7 @@ export default function BlackCatGame({ onClose }: { onClose: () => void }) {
         <header className="arcade-header">
           <div><span>ENCHANTED LIBRARY · PRESENT SIMPLE A1</span><h2>Midnight Return</h2></div>
           <p>{phase === "won" && level === LEVELS.length ? "The black cat made it home." : "Climb from the courtyard to the witch's open window."}</p>
-          <div className="arcade-actions"><button disabled={!['playing', 'paused'].includes(phase)} onClick={() => setPhase(phaseRef.current === "paused" ? "playing" : "paused")} aria-label="Pause game">{phase === "paused" ? "▶" : "Ⅱ"}</button><button onClick={onClose} aria-label="Close game">×</button></div>
+          <div className="arcade-actions"><button className="instructions-trigger" onClick={openInstructions} aria-label="Инструкции">?</button><button disabled={!['playing', 'paused'].includes(phase)} onClick={() => setPhase(phaseRef.current === "paused" ? "playing" : "paused")} aria-label="Pause game">{phase === "paused" ? "▶" : "Ⅱ"}</button><button onClick={onClose} aria-label="Close game">×</button></div>
         </header>
         <div className="game-stage">
           <canvas ref={canvasRef} width={WORLD.width} height={WORLD.height} aria-label="Guide the black cat across stacked crates and barrels, the fence, clotheslines and into the witch's window" />
@@ -711,6 +726,20 @@ export default function BlackCatGame({ onClose }: { onClose: () => void }) {
           <p>{LEVELS[level - 1].stacks.length} prop stacks → fence → {LEVELS[level - 1].ropes.length} lines → window</p>
         </footer>
       </section>
+      <GameInstructions
+        open={showInstructions}
+        onClose={closeInstructions}
+        kicker="PRESENT SIMPLE A1 · ПРАВИЛА"
+        title="Как вернуть кота домой"
+        intro="Доберись от двора до светящегося окна ведьмочки и пройди все пять ночных уровней."
+        steps={[
+          { icon: "↔", title: "Беги и прыгай", text: "Стрелки или A / D двигают кота, Space, W или ↑ — прыжок. Клавиша P ставит игру на паузу." },
+          { icon: "▤", title: "Поднимайся выше", text: "Используй ящики и бочки, затем забор и бельевые верёвки. С нижней опоры сразу на забор не допрыгнуть." },
+          { icon: "!", title: "Избегай помех", text: "Бульдоги патрулируют двор, мыши бегут по верёвкам, а соседи выбрасывают вещи из открытых окон." },
+          { icon: "A", title: "Ответь после падения", text: "Выбери верный ответ по Present Simple. Тогда кот вернётся к последней достигнутой точке маршрута." },
+          { icon: "★", title: "Пройди 5 уровней", text: "С каждым двором дом становится выше, верёвок и противников — больше, а опасности движутся быстрее." },
+        ]}
+      />
     </div>
   );
 }

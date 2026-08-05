@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import GameInstructions from "./GameInstructions";
 
 type Props = { onClose: () => void };
 type TopicId = "have-got" | "there-is" | "present-continuous";
@@ -162,6 +163,7 @@ export default function LibraryLabyrinthGame({ onClose }: Props) {
   const [feedback, setFeedback] = useState<"correct" | "wrong" | null>(null);
   const [dissolving, setDissolving] = useState(false);
   const [blockedDirections, setBlockedDirections] = useState<Direction[]>([]);
+  const [showInstructions, setShowInstructions] = useState(false);
   const timers = useRef<number[]>([]);
 
   const schedule = useCallback((callback: () => void, delay: number) => {
@@ -331,6 +333,7 @@ export default function LibraryLabyrinthGame({ onClose }: Props) {
             <span className="labyrinth-mistakes" aria-label={`${wrongAnswers} mistakes out of 3`}>
               {[0, 1, 2].map((index) => <i className={index < wrongAnswers ? "lost" : ""} key={index}>◆</i>)}
             </span>
+            <button className="instructions-trigger" onClick={() => setShowInstructions(true)} aria-label="Инструкции">?</button>
             <button onClick={onClose} aria-label="Закрыть игру">×</button>
           </div>
         </header>
@@ -430,6 +433,20 @@ export default function LibraryLabyrinthGame({ onClose }: Props) {
           <span>До сокровищ: минимум {route.length || 7} вопросов</span>
         </footer>
       </div>
+      <GameInstructions
+        open={showInstructions}
+        onClose={() => setShowInstructions(false)}
+        kicker="GRAMMAR A1 · ПРАВИЛА"
+        title="Как пройти библиотечный лабиринт"
+        intro="Открывай волшебные книги, отвечай на вопросы и находи дорогу к комнате сокровищ."
+        steps={[
+          { icon: "◇", title: "Открой книгу", text: "Во входном зале нажми на светящуюся книгу и выбери одну из трёх грамматических тем." },
+          { icon: "?", title: "Решай задания", text: "В каждой новой локации снова открой книгу и выбери правильный вариант ответа на свитке." },
+          { icon: "↗", title: "Выбирай путь", text: "После верного ответа появятся стрелки. Нажми на одну из них, чтобы перейти в следующий зал." },
+          { icon: "↩", title: "Исследуй тупики", text: "Неверный маршрут может привести в тупик и добавить ещё одно задание, после которого можно вернуться назад." },
+          { icon: "3", title: "Береги три попытки", text: "После трёх ошибок появится призрак хранителя и вернёт тебя ко входу. До сокровищ нужно решить минимум семь заданий." },
+        ]}
+      />
     </div>
   );
 }
