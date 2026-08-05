@@ -1,15 +1,17 @@
 "use client";
 
+import Image from "next/image";
 import { useMemo, useState, type CSSProperties } from "react";
 
 type Word = { en: string; ru: string };
 type Topic = { id: string; title: string; icon: string; color: string; words: Word[] };
 type Phase = "topics" | "playing" | "won" | "lost";
 type Effect = "idle" | "pour" | "fire" | "success";
+type LetterCase = "upper" | "lower";
 
 const TOPICS: Topic[] = [
   {
-    id: "animals", title: "Животные", icon: "🐾", color: "#62d7d2",
+    id: "animals", title: "Животные", icon: "/assets/topic-animals-v1.png", color: "#62d7d2",
     words: [
       { en: "dolphin", ru: "дельфин" }, { en: "kangaroo", ru: "кенгуру" },
       { en: "kitten", ru: "котёнок" }, { en: "lion", ru: "лев" },
@@ -19,7 +21,7 @@ const TOPICS: Topic[] = [
     ],
   },
   {
-    id: "food", title: "Еда и напитки", icon: "🥞", color: "#f1a95d",
+    id: "food", title: "Еда и напитки", icon: "/assets/topic-food-v1.png", color: "#f1a95d",
     words: [
       { en: "cheese", ru: "сыр" }, { en: "coffee", ru: "кофе" },
       { en: "noodles", ru: "лапша" }, { en: "pancake", ru: "блин" },
@@ -29,7 +31,7 @@ const TOPICS: Topic[] = [
     ],
   },
   {
-    id: "places", title: "Места и природа", icon: "🌲", color: "#83c778",
+    id: "places", title: "Места и природа", icon: "/assets/topic-places-v1.png", color: "#83c778",
     words: [
       { en: "city", ru: "город" }, { en: "country", ru: "страна" },
       { en: "farm", ru: "ферма" }, { en: "field", ru: "поле" },
@@ -39,7 +41,7 @@ const TOPICS: Topic[] = [
     ],
   },
   {
-    id: "home", title: "Дом", icon: "🏠", color: "#d38adf",
+    id: "home", title: "Дом", icon: "/assets/topic-home-v1.png", color: "#d38adf",
     words: [
       { en: "address", ru: "адрес" }, { en: "balcony", ru: "балкон" },
       { en: "basement", ru: "подвал" }, { en: "blanket", ru: "одеяло" },
@@ -49,7 +51,7 @@ const TOPICS: Topic[] = [
     ],
   },
   {
-    id: "people", title: "Люди и семья", icon: "👨‍👩‍👧", color: "#e98787",
+    id: "people", title: "Люди и семья", icon: "/assets/topic-people-v1.png", color: "#e98787",
     words: [
       { en: "aunt", ru: "тётя" }, { en: "daughter", ru: "дочь" },
       { en: "dentist", ru: "стоматолог" }, { en: "doctor", ru: "врач" },
@@ -59,7 +61,7 @@ const TOPICS: Topic[] = [
     ],
   },
   {
-    id: "clothes", title: "Одежда и внешность", icon: "🧣", color: "#779be8",
+    id: "clothes", title: "Одежда и внешность", icon: "/assets/topic-clothes-v1.png", color: "#779be8",
     words: [
       { en: "beard", ru: "борода" }, { en: "blonde", ru: "светловолосый" },
       { en: "coat", ru: "пальто" }, { en: "curly", ru: "кудрявый" },
@@ -92,6 +94,7 @@ export default function AlchemyWordGame({ onClose }: { onClose: () => void }) {
   const [effect, setEffect] = useState<Effect>("idle");
   const [activeLetter, setActiveLetter] = useState("");
   const [message, setMessage] = useState("Выбери первую букву");
+  const [letterCase, setLetterCase] = useState<LetterCase>("upper");
   const currentWord = round[wordIndex];
 
   const tubeColors = useMemo(() => ALPHABET.map((_, index) => ({
@@ -111,6 +114,7 @@ export default function AlchemyWordGame({ onClose }: { onClose: () => void }) {
   };
 
   const restart = () => topic && startTopic(topic);
+  const displayLetter = (letter: string) => letterCase === "upper" ? letter.toUpperCase() : letter.toLowerCase();
 
   const chooseLetter = (letter: string) => {
     if (phase !== "playing" || effect !== "idle" || !currentWord) return;
@@ -152,6 +156,20 @@ export default function AlchemyWordGame({ onClose }: { onClose: () => void }) {
     }, 900);
   };
 
+  const renderTube = (letter: string, index: number) => (
+    <button
+      key={letter}
+      onClick={() => chooseLetter(letter)}
+      disabled={effect !== "idle"}
+      aria-label={`Добавить букву ${displayLetter(letter)}`}
+      className={activeLetter === letter ? "active" : ""}
+      style={{ "--liquid": tubeColors[index].liquid, "--glow": tubeColors[index].glow, "--hue": `${index * 29}deg` } as CSSProperties}
+    >
+      <i className="vial-art" aria-hidden="true" />
+      <span className="tube-letter">{displayLetter(letter)}</span>
+    </button>
+  );
+
   return (
     <div className="alchemy-layer">
       <section className="alchemy-shell" role="dialog" aria-modal="true" aria-label="Собери слово">
@@ -167,11 +185,18 @@ export default function AlchemyWordGame({ onClose }: { onClose: () => void }) {
               <span>✦ ЛАБОРАТОРИЯ СЛОВ ✦</span>
               <h3>Какую книгу откроем?</h3>
               <p>Выбери тему. Алхимик приготовит шесть случайных слов из списка Cambridge A1 Movers.</p>
+              <div className="alchemy-case-picker" aria-label="Выбор регистра букв">
+                <small>КАКИЕ БУКВЫ ИСПОЛЬЗУЕМ?</small>
+                <div>
+                  <button className={letterCase === "upper" ? "selected" : ""} onClick={() => setLetterCase("upper")}><b>ABC</b><span>заглавные</span></button>
+                  <button className={letterCase === "lower" ? "selected" : ""} onClick={() => setLetterCase("lower")}><b>abc</b><span>строчные</span></button>
+                </div>
+              </div>
             </div>
             <div className="alchemy-topic-grid">
               {TOPICS.map((item) => (
                 <button key={item.id} onClick={() => startTopic(item)} style={{ "--topic": item.color } as CSSProperties}>
-                  <i>{item.icon}</i><span><strong>{item.title}</strong><small>{item.words.length} слов</small></span><b>→</b>
+                  <i><Image src={item.icon} alt="" width={74} height={74} /></i><span><strong>{item.title}</strong><small>{item.words.length} слов</small></span><b>→</b>
                 </button>
               ))}
             </div>
@@ -179,10 +204,14 @@ export default function AlchemyWordGame({ onClose }: { onClose: () => void }) {
         ) : (
           <div className={`alchemy-lab effect-${effect}`}>
             <div className="alchemy-status">
-              <span>{topic?.icon} {topic?.title}</span>
+              <span>{topic && <Image src={topic.icon} alt="" width={28} height={28} />} {topic?.title}</span>
               <strong>Слово {Math.min(wordIndex + 1, ROUND_SIZE)} / {ROUND_SIZE}</strong>
               <div className="alchemy-lives" aria-label={`Ошибок: ${mistakes} из 5`}>
                 {Array.from({ length: 5 }, (_, index) => <i className={index < mistakes ? "spent" : ""} key={index}>✦</i>)}
+              </div>
+              <div className="alchemy-case-mini" aria-label="Регистр букв">
+                <button className={letterCase === "upper" ? "selected" : ""} onClick={() => setLetterCase("upper")}>ABC</button>
+                <button className={letterCase === "lower" ? "selected" : ""} onClick={() => setLetterCase("lower")}>abc</button>
               </div>
             </div>
 
@@ -197,39 +226,32 @@ export default function AlchemyWordGame({ onClose }: { onClose: () => void }) {
                 <div className={`alchemy-cauldron-word ${effect === "success" ? "complete" : ""}`}>
                   {currentWord.en.split("").map((letter, index) => (
                     <span className={index < progress.length ? "filled" : ""} key={`${letter}-${index}`}>
-                      {index < progress.length ? letter.toUpperCase() : "·"}
+                      {index < progress.length ? displayLetter(letter) : "·"}
                     </span>
                   ))}
                 </div>
 
-                <div className="alchemy-fire" aria-hidden="true"><i /><i /><i /><i /><i /></div>
-                {activeLetter && <div className="alchemy-pour" aria-hidden="true"><span>{activeLetter}</span></div>}
+                <div className="alchemy-fire" aria-hidden="true"><i className="flame-one" /><i className="flame-two" /><i className="flame-three" /></div>
+                {activeLetter && <div className="alchemy-pour" aria-hidden="true"><span>{displayLetter(activeLetter)}</span></div>}
 
                 <div className="alchemy-hint">{message}</div>
 
-                <div className="tube-rack" aria-label="Пробирки с буквами английского алфавита">
-                  {ALPHABET.map((letter, index) => (
-                    <button
-                      key={letter}
-                      onClick={() => chooseLetter(letter)}
-                      disabled={effect !== "idle"}
-                      aria-label={`Добавить букву ${letter}`}
-                      className={activeLetter === letter ? "active" : ""}
-                      style={{ "--liquid": tubeColors[index].liquid, "--glow": tubeColors[index].glow } as CSSProperties}
-                    >
-                      <span className="tube-letter">{letter}</span><i className="tube-glass"><b /></i>
-                    </button>
-                  ))}
-                </div>
+                <div className="tube-group tube-group-left" aria-label="Пробирки A–G">{ALPHABET.slice(0, 7).map((letter, index) => renderTube(letter, index))}</div>
+                <div className="tube-group tube-group-right" aria-label="Пробирки H–N">{ALPHABET.slice(7, 14).map((letter, index) => renderTube(letter, index + 7))}</div>
+                <div className="tube-group tube-group-bottom" aria-label="Пробирки O–Z">{ALPHABET.slice(14).map((letter, index) => renderTube(letter, index + 14))}</div>
               </>
             )}
 
             {(phase === "won" || phase === "lost") && (
               <div className={`alchemy-result ${phase}`}>
-                <span>{phase === "won" ? "🏆" : "🔥"}</span>
-                <h3>{phase === "won" ? "Все слова сварены!" : "Котёл перегрелся"}</h3>
-                <p>{phase === "won" ? "Шесть зелий готовы. Алхимик вами доволен." : "Пять неверных ингредиентов. Попробуй ещё раз."}</p>
-                <div><button onClick={restart}>Повторить тему</button><button onClick={() => setPhase("topics")}>Выбрать другую</button></div>
+                <div className="alchemy-result-copy">
+                  <span className="alchemy-result-seal">{phase === "won" ? "★" : "×"}</span>
+                  <small>{phase === "won" ? "РЕЦЕПТ ЗАВЕРШЁН" : "ЛАБОРАТОРИЯ ЖДЁТ"}</small>
+                  <h3>{phase === "won" ? "Все слова сварены!" : "Котёл перегрелся"}</h3>
+                  <p>{phase === "won" ? "Шесть слов превратились в настоящее словарное зелье." : "Пять неверных ингредиентов. Начни рецепт ещё раз."}</p>
+                  <div className="alchemy-result-stats"><span>{topic?.title}</span><strong>{phase === "won" ? `${ROUND_SIZE} / ${ROUND_SIZE} слов` : `${mistakes} ошибок`}</strong><b>{letterCase === "upper" ? "ABC" : "abc"}</b></div>
+                  <div className="alchemy-result-actions"><button onClick={restart}>Повторить тему</button><button onClick={() => setPhase("topics")}>Выбрать другую</button><button onClick={onClose}>В библиотеку</button></div>
+                </div>
               </div>
             )}
           </div>
