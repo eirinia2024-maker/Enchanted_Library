@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import GameInstructions from "./GameInstructions";
+import { GameAudioControls, useGameAudio } from "./GameAudio";
 
 type Props = { onClose: () => void };
 type TopicId = "have-got" | "there-is" | "present-continuous";
@@ -150,6 +151,8 @@ function assetFor(view: View, location: LocationId): string {
 }
 
 export default function LibraryLabyrinthGame({ onClose }: Props) {
+  const gameAudio = useGameAudio("/assets/library-labyrinth-theme.mp3");
+  const playEffect = gameAudio.playEffect;
   const [topic, setTopic] = useState<TopicId | null>(null);
   const [route, setRoute] = useState<RouteStep[]>([]);
   const [routeIndex, setRouteIndex] = useState(0);
@@ -210,6 +213,7 @@ export default function LibraryLabyrinthGame({ onClose }: Props) {
   }
 
   function selectTopic(topicId: TopicId) {
+    playEffect("book");
     setTopic(topicId);
     setRoute(buildRoute());
     setRouteIndex(0);
@@ -222,6 +226,7 @@ export default function LibraryLabyrinthGame({ onClose }: Props) {
 
   function openBook() {
     if (view !== "book") return;
+    playEffect(location === "treasure" ? "win" : "book");
     if (location === "entrance") {
       setView("topic");
       return;
@@ -239,6 +244,7 @@ export default function LibraryLabyrinthGame({ onClose }: Props) {
     if (!question || feedback || !topic) return;
     setSelectedAnswer(option);
     if (option === question.answer) {
+      playEffect("correct");
       setFeedback("correct");
       setCorrectAnswers((count) => count + 1);
       schedule(() => {
@@ -250,6 +256,7 @@ export default function LibraryLabyrinthGame({ onClose }: Props) {
     }
 
     const nextWrongCount = wrongAnswers + 1;
+    playEffect("wrong");
     setWrongAnswers(nextWrongCount);
     setFeedback("wrong");
     setDissolving(true);
@@ -274,6 +281,7 @@ export default function LibraryLabyrinthGame({ onClose }: Props) {
 
   function move(direction: Direction) {
     if (view !== "routes") return;
+    playEffect("move");
 
     if (location === "entrance") {
       const first = route[0];
@@ -333,6 +341,7 @@ export default function LibraryLabyrinthGame({ onClose }: Props) {
             <span className="labyrinth-mistakes" aria-label={`${wrongAnswers} mistakes out of 3`}>
               {[0, 1, 2].map((index) => <i className={index < wrongAnswers ? "lost" : ""} key={index}>◆</i>)}
             </span>
+            <GameAudioControls audio={gameAudio} label="Музыка лабиринта" />
             <button className="instructions-trigger" onClick={() => setShowInstructions(true)} aria-label="Инструкции">?</button>
             <button onClick={onClose} aria-label="Закрыть игру">×</button>
           </div>

@@ -3,6 +3,7 @@
 import Image from "next/image";
 import { useCallback, useEffect, useMemo, useState, type CSSProperties } from "react";
 import GameInstructions from "./GameInstructions";
+import { GameAudioControls, useGameAudio } from "./GameAudio";
 
 type Word = { en: string; ru: string };
 type Topic = { id: string; title: string; icon: string; color: string; words: Word[] };
@@ -86,6 +87,8 @@ function shuffle<T>(items: T[]) {
 }
 
 export default function AlchemyWordGame({ onClose }: { onClose: () => void }) {
+  const gameAudio = useGameAudio("/assets/words-potion-theme.mp3");
+  const playEffect = gameAudio.playEffect;
   const [phase, setPhase] = useState<Phase>("topics");
   const [topic, setTopic] = useState<Topic | null>(null);
   const [round, setRound] = useState<Word[]>([]);
@@ -105,6 +108,7 @@ export default function AlchemyWordGame({ onClose }: { onClose: () => void }) {
   })), []);
 
   const startTopic = (selected: Topic) => {
+    playEffect("book");
     setTopic(selected);
     setRound(shuffle(selected.words).slice(0, ROUND_SIZE));
     setWordIndex(0);
@@ -124,6 +128,7 @@ export default function AlchemyWordGame({ onClose }: { onClose: () => void }) {
     const expected = currentWord.en[progress.length];
     setActiveLetter(letter);
     if (lower === expected) {
+      playEffect("pour");
       const next = progress + lower;
       setProgress(next);
       setEffect(next === currentWord.en ? "success" : "pour");
@@ -131,6 +136,7 @@ export default function AlchemyWordGame({ onClose }: { onClose: () => void }) {
       if (next === currentWord.en) {
         window.setTimeout(() => {
           if (wordIndex + 1 >= round.length) {
+            playEffect("win");
             setPhase("won");
           } else {
             setWordIndex((value) => value + 1);
@@ -147,6 +153,7 @@ export default function AlchemyWordGame({ onClose }: { onClose: () => void }) {
     }
 
     const nextMistakes = mistakes + 1;
+    playEffect("wrong");
     setMistakes(nextMistakes);
     setEffect("fire");
     setMessage("Неверный ингредиент — рецепт сброшен!");
@@ -156,7 +163,7 @@ export default function AlchemyWordGame({ onClose }: { onClose: () => void }) {
       if (nextMistakes >= 5) setPhase("lost");
       else setEffect("idle");
     }, 900);
-  }, [currentWord, effect, mistakes, phase, progress, round.length, wordIndex]);
+  }, [currentWord, effect, mistakes, phase, playEffect, progress, round.length, wordIndex]);
 
   useEffect(() => {
     const handleKeyboardLetter = (event: KeyboardEvent) => {
@@ -189,7 +196,7 @@ export default function AlchemyWordGame({ onClose }: { onClose: () => void }) {
         <header className="alchemy-header">
           <div><span>ENCHANTED LIBRARY · A1 MOVERS</span><h2>Собери слово</h2></div>
           <p>{phase === "topics" ? "Выбери раздел словаря" : "Выбирай пробирки или набирай слово на клавиатуре"}</p>
-          <div className="alchemy-header-actions"><button className="instructions-trigger" onClick={() => setShowInstructions(true)} aria-label="Инструкции">?</button><button onClick={onClose} aria-label="Закрыть игру">×</button></div>
+          <div className="alchemy-header-actions"><GameAudioControls audio={gameAudio} label="Музыка лаборатории" /><button className="instructions-trigger" onClick={() => setShowInstructions(true)} aria-label="Инструкции">?</button><button onClick={onClose} aria-label="Закрыть игру">×</button></div>
         </header>
 
         {phase === "topics" ? (

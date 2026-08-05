@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import GameInstructions from "./GameInstructions";
+import { GameAudioControls, useGameAudio } from "./GameAudio";
 
 type Question = { prompt: string; options: string[]; correct: string };
 
@@ -59,6 +60,8 @@ const LEVELS = [
 ];
 
 export default function BlackCatGame({ onClose }: { onClose: () => void }) {
+  const gameAudio = useGameAudio("/assets/midnight-return-theme.mp3");
+  const playEffect = gameAudio.playEffect;
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const backgroundRef = useRef<HTMLImageElement | null>(null);
   const spritesRef = useRef<Record<string, HTMLCanvasElement>>({});
@@ -126,6 +129,7 @@ export default function BlackCatGame({ onClose }: { onClose: () => void }) {
 
   const loseTurn = useCallback(() => {
     if (phaseRef.current !== "playing") return;
+    playEffect("fall");
     nextQuestion();
     setFalls((value) => value + 1);
     setHearts((value) => {
@@ -133,16 +137,17 @@ export default function BlackCatGame({ onClose }: { onClose: () => void }) {
       return value - 1;
     });
     setPhase("quiz");
-  }, [nextQuestion, setPhase]);
+  }, [nextQuestion, playEffect, setPhase]);
 
   const jump = useCallback(() => {
     const cat = playerRef.current;
     if (phaseRef.current === "playing" && cat.grounded) {
+      playEffect("jump");
       cat.vy = -8.8;
       cat.grounded = false;
       cat.support = "";
     }
-  }, []);
+  }, [playEffect]);
 
   useEffect(() => {
     const image = new Image();
@@ -603,7 +608,7 @@ export default function BlackCatGame({ onClose }: { onClose: () => void }) {
         if (vulnerable && mice.some((mouse) => circleHitsCat(mouse.x, mouse.y - 6, 16))) loseTurn();
         if (vulnerable && hazardsRef.current.some((item) => circleHitsCat(item.x, item.y, 11))) loseTurn();
         if (cat.y > WORLD.height + 25) loseTurn();
-        if (cat.x + CAT.width > difficulty.windowX && cat.x < difficulty.windowX + difficulty.windowW && cat.y + CAT.height <= difficulty.windowY + 6) { setScore((value) => value + 100 + level * 25); setPhase("won"); }
+        if (cat.x + CAT.width > difficulty.windowX && cat.x < difficulty.windowX + difficulty.windowW && cat.y + CAT.height <= difficulty.windowY + 6) { playEffect("win"); setScore((value) => value + 100 + level * 25); setPhase("won"); }
       }
 
       draw(time, platforms, mice);
@@ -611,10 +616,11 @@ export default function BlackCatGame({ onClose }: { onClose: () => void }) {
     };
     frameRef.current = requestAnimationFrame(tick);
     return () => { if (frameRef.current) cancelAnimationFrame(frameRef.current); };
-  }, [hearts, level, loseTurn, score, setPhase]);
+  }, [hearts, level, loseTurn, playEffect, score, setPhase]);
 
   const answerQuestion = (answer: string) => {
     setSelected(answer);
+    playEffect(answer === QUESTIONS[questionIndex].correct ? "correct" : "wrong");
     if (answer === QUESTIONS[questionIndex].correct) window.setTimeout(() => { resetCat(); setPhase("playing"); setSelected(null); }, 650);
   };
 
@@ -649,7 +655,7 @@ export default function BlackCatGame({ onClose }: { onClose: () => void }) {
         <header className="arcade-header">
           <div><span>ENCHANTED LIBRARY · PRESENT SIMPLE A1</span><h2>Midnight Return</h2></div>
           <p>{phase === "won" && level === LEVELS.length ? "The black cat made it home." : "Climb from the courtyard to the witch's open window."}</p>
-          <div className="arcade-actions"><button className="instructions-trigger" onClick={openInstructions} aria-label="Инструкции">?</button><button disabled={!['playing', 'paused'].includes(phase)} onClick={() => setPhase(phaseRef.current === "paused" ? "playing" : "paused")} aria-label="Pause game">{phase === "paused" ? "▶" : "Ⅱ"}</button><button onClick={onClose} aria-label="Close game">×</button></div>
+          <div className="arcade-actions"><GameAudioControls audio={gameAudio} label="Музыка Midnight Return" /><button className="instructions-trigger" onClick={openInstructions} aria-label="Инструкции">?</button><button disabled={!['playing', 'paused'].includes(phase)} onClick={() => setPhase(phaseRef.current === "paused" ? "playing" : "paused")} aria-label="Pause game">{phase === "paused" ? "▶" : "Ⅱ"}</button><button onClick={onClose} aria-label="Close game">×</button></div>
         </header>
         <div className="game-stage">
           <canvas ref={canvasRef} width={WORLD.width} height={WORLD.height} aria-label="Guide the black cat across stacked crates and barrels, the fence, clotheslines and into the witch's window" />
