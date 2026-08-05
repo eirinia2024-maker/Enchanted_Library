@@ -17,10 +17,12 @@ const SOUND_PATTERNS: Record<GameSound, Note[]> = {
   win: [{ frequency: 523, duration: .13 }, { frequency: 659, delay: .11, duration: .13 }, { frequency: 784, delay: .22, duration: .13 }, { frequency: 1047, delay: .34, duration: .3 }],
 };
 
+const INITIAL_VOLUME = .18;
+
 export function useGameAudio(src: string) {
   const musicRef = useRef<HTMLAudioElement | null>(null);
   const contextRef = useRef<AudioContext | null>(null);
-  const [volume, setVolumeState] = useState(.18);
+  const [volume, setVolumeState] = useState(INITIAL_VOLUME);
   const [muted, setMuted] = useState(false);
   const [playing, setPlaying] = useState(false);
 
@@ -34,7 +36,7 @@ export function useGameAudio(src: string) {
     const music = new Audio(src);
     music.loop = true;
     music.preload = "auto";
-    music.volume = volume;
+    music.volume = INITIAL_VOLUME;
     musicRef.current = music;
 
     const activate = () => {

@@ -1,11 +1,12 @@
 "use client";
 
 import Image from "next/image";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState, type CSSProperties } from "react";
 import AlchemyWordGame from "./AlchemyWordGame";
 import BlackCatGame from "./BlackCatGame";
 import LibraryLabyrinthGame from "./LibraryLabyrinthGame";
 import DragonLibraryGate from "./DragonLibraryGate";
+import { assetPath } from "./assetPath";
 
 type Game = {
   id: string;
@@ -26,7 +27,7 @@ const games: Game[] = [
     category: "Present Simple",
     level: "A1",
     description: "Climb the bins, dodge the bulldog and return to the witch's window.",
-    image: "/assets/midnight-return-cover-v1.png",
+    image: assetPath("/assets/midnight-return-cover-v1.png"),
     challenge: "Which word means «волшебный»?",
     answers: ["magical", "careful", "ordinary"],
     correct: "magical",
@@ -37,7 +38,7 @@ const games: Game[] = [
     category: "YLE Movers Vocabulary",
     level: "A1",
     description: "Смешивай буквы-ингредиенты и вари английские слова в лаборатории алхимика.",
-    image: "/assets/word-potion-cover-v1.png",
+    image: assetPath("/assets/word-potion-cover-v1.png"),
     challenge: "Собери английское слово из ингредиентов.",
     answers: [],
     correct: "",
@@ -48,7 +49,7 @@ const games: Game[] = [
     category: "Grammar Maze",
     level: "A1–A2",
     description: "Answer grammar questions, explore changing routes and find the hidden treasure room.",
-    image: "/assets/library-labyrinth-cover-v2.png",
+    image: assetPath("/assets/library-labyrinth-cover-v2.png"),
     challenge: "Knowledge is the key.",
     answers: [],
     correct: "",
@@ -93,7 +94,7 @@ export default function Home() {
   }
 
   return (
-    <main className="site-shell" id="home">
+    <main className="site-shell" id="home" style={{ "--site-background": `url("${assetPath("/assets/enchanted-library-bg-v2.png")}")` } as CSSProperties}>
       <header className="header">
         <a className="logo" href="#home" aria-label="Enchanted Library home">
           <span className="crest" aria-hidden="true"><i>★</i><b>📖</b></span>
@@ -120,7 +121,7 @@ export default function Home() {
         </label>
 
         <section className="featured" aria-labelledby="featured-title">
-          <Image src="/assets/dragon-library-v2.png" alt="A young blue dragon reading a glowing book" fill priority sizes="(max-width: 900px) 100vw, 1320px" />
+          <Image src={assetPath("/assets/dragon-library-v2.png")} alt="A young blue dragon reading a glowing book" fill priority sizes="(max-width: 900px) 100vw, 1320px" />
           <div className="featured-shade" />
           <div className="featured-copy">
             <span className="featured-label"><i>★</i> Featured adventure</span>

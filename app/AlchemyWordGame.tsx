@@ -4,6 +4,7 @@ import Image from "next/image";
 import { useCallback, useEffect, useMemo, useState, type CSSProperties } from "react";
 import GameInstructions from "./GameInstructions";
 import { GameAudioControls, useGameAudio } from "./GameAudio";
+import { assetPath } from "./assetPath";
 
 type Word = { en: string; ru: string };
 type Topic = { id: string; title: string; icon: string; color: string; words: Word[] };
@@ -13,7 +14,7 @@ type LetterCase = "upper" | "lower";
 
 const TOPICS: Topic[] = [
   {
-    id: "animals", title: "Животные", icon: "/assets/topic-animals-v1.png", color: "#62d7d2",
+    id: "animals", title: "Животные", icon: assetPath("/assets/topic-animals-v1.png"), color: "#62d7d2",
     words: [
       { en: "dolphin", ru: "дельфин" }, { en: "kangaroo", ru: "кенгуру" },
       { en: "kitten", ru: "котёнок" }, { en: "lion", ru: "лев" },
@@ -23,7 +24,7 @@ const TOPICS: Topic[] = [
     ],
   },
   {
-    id: "food", title: "Еда и напитки", icon: "/assets/topic-food-v1.png", color: "#f1a95d",
+    id: "food", title: "Еда и напитки", icon: assetPath("/assets/topic-food-v1.png"), color: "#f1a95d",
     words: [
       { en: "cheese", ru: "сыр" }, { en: "coffee", ru: "кофе" },
       { en: "noodles", ru: "лапша" }, { en: "pancake", ru: "блин" },
@@ -33,7 +34,7 @@ const TOPICS: Topic[] = [
     ],
   },
   {
-    id: "places", title: "Места и природа", icon: "/assets/topic-places-v1.png", color: "#83c778",
+    id: "places", title: "Места и природа", icon: assetPath("/assets/topic-places-v1.png"), color: "#83c778",
     words: [
       { en: "city", ru: "город" }, { en: "country", ru: "страна" },
       { en: "farm", ru: "ферма" }, { en: "field", ru: "поле" },
@@ -43,7 +44,7 @@ const TOPICS: Topic[] = [
     ],
   },
   {
-    id: "home", title: "Дом", icon: "/assets/topic-home-v1.png", color: "#d38adf",
+    id: "home", title: "Дом", icon: assetPath("/assets/topic-home-v1.png"), color: "#d38adf",
     words: [
       { en: "address", ru: "адрес" }, { en: "balcony", ru: "балкон" },
       { en: "basement", ru: "подвал" }, { en: "blanket", ru: "одеяло" },
@@ -53,7 +54,7 @@ const TOPICS: Topic[] = [
     ],
   },
   {
-    id: "people", title: "Люди и семья", icon: "/assets/topic-people-v1.png", color: "#e98787",
+    id: "people", title: "Люди и семья", icon: assetPath("/assets/topic-people-v1.png"), color: "#e98787",
     words: [
       { en: "aunt", ru: "тётя" }, { en: "daughter", ru: "дочь" },
       { en: "dentist", ru: "стоматолог" }, { en: "doctor", ru: "врач" },
@@ -63,7 +64,7 @@ const TOPICS: Topic[] = [
     ],
   },
   {
-    id: "clothes", title: "Одежда и внешность", icon: "/assets/topic-clothes-v1.png", color: "#779be8",
+    id: "clothes", title: "Одежда и внешность", icon: assetPath("/assets/topic-clothes-v1.png"), color: "#779be8",
     words: [
       { en: "beard", ru: "борода" }, { en: "blonde", ru: "светловолосый" },
       { en: "coat", ru: "пальто" }, { en: "curly", ru: "кудрявый" },
@@ -87,7 +88,7 @@ function shuffle<T>(items: T[]) {
 }
 
 export default function AlchemyWordGame({ onClose }: { onClose: () => void }) {
-  const gameAudio = useGameAudio("/assets/words-potion-theme.mp3");
+  const gameAudio = useGameAudio(assetPath("/assets/words-potion-theme.mp3"));
   const playEffect = gameAudio.playEffect;
   const [phase, setPhase] = useState<Phase>("topics");
   const [topic, setTopic] = useState<Topic | null>(null);
@@ -185,13 +186,19 @@ export default function AlchemyWordGame({ onClose }: { onClose: () => void }) {
       className={activeLetter === letter ? "active" : ""}
       style={{ "--liquid": tubeColors[index].liquid, "--glow": tubeColors[index].glow, "--hue": `${index * 29}deg` } as CSSProperties}
     >
-      <i className="vial-art" aria-hidden="true" style={{ backgroundImage: "url('/assets/alchemy-vial-v2.png')" }} />
+      <i className="vial-art" aria-hidden="true" style={{ backgroundImage: `url("${assetPath("/assets/alchemy-vial-v2.png")}")` }} />
       <span className="tube-letter">{displayLetter(letter)}</span>
     </button>
   );
 
   return (
-    <div className="alchemy-layer">
+    <div className="alchemy-layer" style={{
+      "--alchemy-lab-background": `url("${assetPath("/assets/alchemist-word-lab-v1.png")}")`,
+      "--alchemy-flame-one": `url("${assetPath("/assets/alchemy-flame-1-v1.png")}")`,
+      "--alchemy-flame-two": `url("${assetPath("/assets/alchemy-flame-2-v1.png")}")`,
+      "--alchemy-flame-three": `url("${assetPath("/assets/alchemy-flame-3-v1.png")}")`,
+      "--alchemy-finale": `url("${assetPath("/assets/alchemy-finale-v1.png")}")`,
+    } as CSSProperties}>
       <section className="alchemy-shell" role="dialog" aria-modal="true" aria-label="Собери слово">
         <header className="alchemy-header">
           <div><span>ENCHANTED LIBRARY · A1 MOVERS</span><h2>Собери слово</h2></div>

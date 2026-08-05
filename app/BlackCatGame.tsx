@@ -1,8 +1,9 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState, type CSSProperties } from "react";
 import GameInstructions from "./GameInstructions";
 import { GameAudioControls, useGameAudio } from "./GameAudio";
+import { assetPath } from "./assetPath";
 
 type Question = { prompt: string; options: string[]; correct: string };
 
@@ -60,7 +61,7 @@ const LEVELS = [
 ];
 
 export default function BlackCatGame({ onClose }: { onClose: () => void }) {
-  const gameAudio = useGameAudio("/assets/midnight-return-theme.mp3");
+  const gameAudio = useGameAudio(assetPath("/assets/midnight-return-theme.mp3"));
   const playEffect = gameAudio.playEffect;
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const backgroundRef = useRef<HTMLImageElement | null>(null);
@@ -160,7 +161,7 @@ export default function BlackCatGame({ onClose }: { onClose: () => void }) {
 
   useEffect(() => {
     const image = new Image();
-    image.src = "/assets/library-facade-clean-v3.png";
+    image.src = assetPath("/assets/library-facade-clean-v3.png");
     image.onload = () => { backgroundRef.current = image; };
 
     const keyImage = (sprite: HTMLImageElement) => {
@@ -229,18 +230,18 @@ export default function BlackCatGame({ onClose }: { onClose: () => void }) {
       };
     };
 
-    loadSprite("cat-idle", "/assets/cat-idle-source-v3.png", true);
-    loadSheet("cat", "/assets/cat-run-sheet-v2.png", [0, .31, .62, 1]);
-    loadSheet("dog", "/assets/bulldog-run-sheet-v2.png", [0, .32, .635, 1]);
-    loadSheet("mouse", "/assets/mouse-run-sheet-v2.png", [0, .333, .64, 1]);
-    loadSprite("crate", "/assets/library-crate-source-v1.png", true);
-    loadSprite("barrel", "/assets/library-barrel-source-v1.png", true);
-    loadSprite("window-open", "/assets/library-window-open-source-v1.png", true);
-    loadSprite("window-closed", "/assets/library-window-closed-source-v2.png", true);
-    loadSprite("fence-rail", "/assets/library-fence-rail-source-v1.png", true);
-    loadSheet("laundry", "/assets/library-laundry-line-source-v1.png", [0, .235, .36, .5, .65, .79, 1]);
-    loadSprite("witch", "/assets/witch-source-v2.png", true);
-    loadSprite("residents", "/assets/residents-source-v2.png");
+    loadSprite("cat-idle", assetPath("/assets/cat-idle-source-v3.png"), true);
+    loadSheet("cat", assetPath("/assets/cat-run-sheet-v2.png"), [0, .31, .62, 1]);
+    loadSheet("dog", assetPath("/assets/bulldog-run-sheet-v2.png"), [0, .32, .635, 1]);
+    loadSheet("mouse", assetPath("/assets/mouse-run-sheet-v2.png"), [0, .333, .64, 1]);
+    loadSprite("crate", assetPath("/assets/library-crate-source-v1.png"), true);
+    loadSprite("barrel", assetPath("/assets/library-barrel-source-v1.png"), true);
+    loadSprite("window-open", assetPath("/assets/library-window-open-source-v1.png"), true);
+    loadSprite("window-closed", assetPath("/assets/library-window-closed-source-v2.png"), true);
+    loadSprite("fence-rail", assetPath("/assets/library-fence-rail-source-v1.png"), true);
+    loadSheet("laundry", assetPath("/assets/library-laundry-line-source-v1.png"), [0, .235, .36, .5, .65, .79, 1]);
+    loadSprite("witch", assetPath("/assets/witch-source-v2.png"), true);
+    loadSprite("residents", assetPath("/assets/residents-source-v2.png"));
   }, []);
 
   useEffect(() => {
@@ -670,7 +671,7 @@ export default function BlackCatGame({ onClose }: { onClose: () => void }) {
   };
 
   return (
-    <div className="arcade-layer">
+    <div className="arcade-layer" style={{ "--midnight-finale": `url("${assetPath("/assets/midnight-return-finale-v1.png")}")` } as CSSProperties}>
       <section className="arcade-shell" role="dialog" aria-modal="true" aria-label="Midnight Return game">
         <header className="arcade-header">
           <div><span>ENCHANTED LIBRARY · PRESENT SIMPLE A1</span><h2>Midnight Return</h2></div>

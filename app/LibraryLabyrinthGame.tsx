@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import GameInstructions from "./GameInstructions";
 import { GameAudioControls, useGameAudio } from "./GameAudio";
+import { assetPath } from "./assetPath";
 
 type Props = { onClose: () => void };
 type TopicId = "have-got" | "there-is" | "present-continuous";
@@ -147,11 +148,11 @@ function assetFor(view: View, location: LocationId): string {
   if (view === "topic" || view === "question" || view === "final") state = "scroll";
   if (view === "routes") state = "arrows";
   if (view === "ghost") state = "ghost";
-  return `/assets/library-labyrinth-${state}-${LOCATION_SLUG[location]}-wide-v1.png`;
+  return assetPath(`/assets/library-labyrinth-${state}-${LOCATION_SLUG[location]}-wide-v1.png`);
 }
 
 export default function LibraryLabyrinthGame({ onClose }: Props) {
-  const gameAudio = useGameAudio("/assets/library-labyrinth-theme.mp3");
+  const gameAudio = useGameAudio(assetPath("/assets/library-labyrinth-theme.mp3"));
   const playEffect = gameAudio.playEffect;
   const [topic, setTopic] = useState<TopicId | null>(null);
   const [route, setRoute] = useState<RouteStep[]>([]);

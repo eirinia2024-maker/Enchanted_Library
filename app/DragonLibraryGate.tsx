@@ -3,6 +3,7 @@
 import Image from "next/image";
 import { useEffect, useState } from "react";
 import { createPortal } from "react-dom";
+import { assetPath } from "./assetPath";
 
 const QUESTIONS = [
   {
@@ -81,7 +82,7 @@ export default function DragonLibraryGate({ onClose, onFinish }: { onClose: () =
 
         {stage === "question" && (
           <>
-            <Image className="dragon-gate-background" src="/assets/dragon-gate-question.png" alt="A young dragon librarian beside an enchanted parchment" fill priority sizes="min(1180px, 96vw)" />
+            <Image className="dragon-gate-background" src={assetPath("/assets/dragon-gate-question.png")} alt="A young dragon librarian beside an enchanted parchment" fill priority sizes="min(1180px, 96vw)" />
             <div className="dragon-question-copy">
               <span>THE DRAGON LIBRARIAN · RIDDLE {questionIndex + 1} OF {QUESTIONS.length}</span>
               <div className="dragon-progress" aria-label={`${questionIndex} correct answers out of 3`}>
@@ -100,7 +101,7 @@ export default function DragonLibraryGate({ onClose, onFinish }: { onClose: () =
 
         {stage === "feedback" && (
           <>
-            <Image className="dragon-feedback-image" src={correct ? "/assets/dragon-gate-happy.png" : "/assets/dragon-gate-sad.png"} alt={correct ? "The dragon is happy with the correct answer" : "The dragon is sad about the wrong answer"} fill sizes="min(980px, 96vw)" />
+            <Image className="dragon-feedback-image" src={assetPath(correct ? "/assets/dragon-gate-happy.png" : "/assets/dragon-gate-sad.png")} alt={correct ? "The dragon is happy with the correct answer" : "The dragon is sad about the wrong answer"} fill sizes="min(980px, 96vw)" />
             <div className={`dragon-feedback-copy ${correct ? "correct" : "wrong"}`}>
               <span>{correct ? "✦ CORRECT ✦" : "NOT QUITE YET"}</span>
               <h2>{correct ? "Brilliant answer!" : "The old books disagree…"}</h2>
@@ -112,7 +113,7 @@ export default function DragonLibraryGate({ onClose, onFinish }: { onClose: () =
 
         {stage === "success" && (
           <>
-            <Image className="dragon-feedback-image" src="/assets/dragon-gate-happy.png" alt="The happy dragon welcomes the player" fill priority sizes="min(980px, 96vw)" />
+            <Image className="dragon-feedback-image" src={assetPath("/assets/dragon-gate-happy.png")} alt="The happy dragon welcomes the player" fill priority sizes="min(980px, 96vw)" />
             <div className="dragon-feedback-copy success">
               <span>✦ ALL THREE RIDDLES SOLVED ✦</span>
               <h2>Now you&apos;re welcome to the magic library!</h2>
