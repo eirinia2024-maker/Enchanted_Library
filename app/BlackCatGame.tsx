@@ -49,17 +49,25 @@ const CHECKPOINTS = [
 type Phase = "playing" | "quiz" | "won" | "paused";
 type Platform = { id: string; x: number; y: number; w: number; kind: "ground" | "bin" | "fence" | "rope" | "ledge" };
 type Projectile = { x: number; y: number; vx: number; vy: number; kind: number };
+type MouseHazard = { x: number; y: number; direction: number };
+
+const LEVELS = [
+  { label: "1–1", ropeSway: 3, dogSpeed: 1.35, mouseDivisor: 13, mouseCount: 1, throwMin: 3300, throwRange: 1700, projectileGravity: .1 },
+  { label: "1–2", ropeSway: 6, dogSpeed: 1.75, mouseDivisor: 10, mouseCount: 2, throwMin: 2500, throwRange: 1200, projectileGravity: .13 },
+  { label: "1–3", ropeSway: 9, dogSpeed: 2.15, mouseDivisor: 8, mouseCount: 4, throwMin: 1800, throwRange: 900, projectileGravity: .16 },
+];
 
 export default function BlackCatGame({ onClose }: { onClose: () => void }) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const backgroundRef = useRef<HTMLImageElement | null>(null);
+  const spritesRef = useRef<Record<string, HTMLCanvasElement>>({});
   const frameRef = useRef<number | null>(null);
   const keysRef = useRef({ left: false, right: false });
   const phaseRef = useRef<Phase>("playing");
   const checkpointRef = useRef(0);
   const hazardsRef = useRef<Projectile[]>([]);
   const nextThrowRef = useRef(2400);
-  const warningRef = useRef<{ x: number; y: number; until: number } | null>(null);
+  const warningRef = useRef<{ x: number; y: number; until: number; resident: number } | null>(null);
   const startTimeRef = useRef(0);
   const dogRef = useRef({ x: 710, direction: 1 });
   const playerRef = useRef({ x: 48, y: 487, vx: 0, vy: 0, grounded: true, support: "ground", facing: 1, invincibleUntil: 0 });
@@ -70,6 +78,7 @@ export default function BlackCatGame({ onClose }: { onClose: () => void }) {
   const [falls, setFalls] = useState(0);
   const [hearts, setHearts] = useState(3);
   const [score, setScore] = useState(0);
+  const [level, setLevel] = useState(1);
 
   const setPhase = useCallback((value: Phase) => {
     phaseRef.current = value;
@@ -113,6 +122,36 @@ export default function BlackCatGame({ onClose }: { onClose: () => void }) {
     const image = new Image();
     image.src = "/assets/alley-library-yard-v2.png";
     image.onload = () => { backgroundRef.current = image; };
+
+    const loadSprite = (key: string, src: string) => {
+      const sprite = new Image();
+      sprite.src = src;
+      sprite.onload = () => {
+        const layer = document.createElement("canvas");
+        layer.width = sprite.naturalWidth;
+        layer.height = sprite.naturalHeight;
+        const layerContext = layer.getContext("2d", { willReadFrequently: true });
+        if (!layerContext) return;
+        layerContext.drawImage(sprite, 0, 0);
+        const pixels = layerContext.getImageData(0, 0, layer.width, layer.height);
+        for (let i = 0; i < pixels.data.length; i += 4) {
+          const red = pixels.data[i];
+          const green = pixels.data[i + 1];
+          const blue = pixels.data[i + 2];
+          if (green > 145 && green > red * 1.38 && green > blue * 1.25) {
+            const dominance = green - Math.max(red, blue);
+            pixels.data[i + 3] = dominance > 105 ? 0 : Math.max(0, 255 - dominance * 2.35);
+          }
+        }
+        layerContext.putImageData(pixels, 0, 0);
+        spritesRef.current[key] = layer;
+      };
+    };
+    loadSprite("cat", "/assets/cat-source-v2.png");
+    loadSprite("dog", "/assets/bulldog-source-v2.png");
+    loadSprite("mouse", "/assets/mouse-source-v2.png");
+    loadSprite("witch", "/assets/witch-source-v2.png");
+    loadSprite("residents", "/assets/residents-source-v2.png");
   }, []);
 
   useEffect(() => {
@@ -138,10 +177,12 @@ export default function BlackCatGame({ onClose }: { onClose: () => void }) {
     const ctx = canvas.getContext("2d");
     if (!ctx) return;
     startTimeRef.current = performance.now();
+    const difficulty = LEVELS[level - 1];
+    nextThrowRef.current = performance.now() + 1700;
 
     const platformsAt = (time: number): Platform[] => {
-      const lowY = 285 + Math.sin(time / 720) * 5;
-      const highY = 188 + Math.sin(time / 820 + 1.4) * 5;
+      const lowY = 285 + Math.sin(time / 720) * difficulty.ropeSway;
+      const highY = 188 + Math.sin(time / 820 + 1.4) * difficulty.ropeSway;
       return [
         { id: "ground", x: 0, y: 519, w: 1000, kind: "ground" },
         { id: "bin-1", x: 115, y: 474, w: 75, kind: "bin" },
@@ -162,6 +203,15 @@ export default function BlackCatGame({ onClose }: { onClose: () => void }) {
     };
 
     const drawCat = (x: number, y: number, facing: number, blinking: boolean) => {
+      const sprite = spritesRef.current.cat;
+      if (sprite) {
+        ctx.save();
+        if (blinking) ctx.globalAlpha = .35;
+        ctx.translate(x + CAT.width / 2, 0); ctx.scale(facing, 1);
+        ctx.drawImage(sprite, -46, y - 29, 92, 62);
+        ctx.restore();
+        return;
+      }
       if (blinking) ctx.globalAlpha = .35;
       ctx.save(); ctx.translate(x + CAT.width / 2, y + CAT.height / 2); ctx.scale(facing, 1); ctx.translate(-CAT.width / 2, -CAT.height / 2);
       ctx.strokeStyle = "#080910"; ctx.lineWidth = 7; ctx.lineCap = "round";
@@ -196,6 +246,12 @@ export default function BlackCatGame({ onClose }: { onClose: () => void }) {
     };
 
     const drawMouse = (x: number, y: number, direction: number) => {
+      const sprite = spritesRef.current.mouse;
+      if (sprite) {
+        ctx.save(); ctx.translate(x, 0); ctx.scale(direction, 1);
+        ctx.drawImage(sprite, -25, y - 35, 50, 42); ctx.restore();
+        return;
+      }
       ctx.save(); ctx.translate(x, y); ctx.scale(direction, 1);
       ctx.strokeStyle = "#a9959b"; ctx.lineWidth = 2; ctx.beginPath(); ctx.moveTo(-8, -2); ctx.quadraticCurveTo(-18, -12, -24, -5); ctx.stroke();
       ctx.fillStyle = "#91828a"; ctx.beginPath(); ctx.ellipse(0, -5, 10, 7, 0, 0, Math.PI * 2); ctx.fill();
@@ -205,6 +261,12 @@ export default function BlackCatGame({ onClose }: { onClose: () => void }) {
     };
 
     const drawDog = (x: number, direction: number) => {
+      const sprite = spritesRef.current.dog;
+      if (sprite) {
+        ctx.save(); ctx.translate(x, 0); ctx.scale(direction, 1);
+        ctx.drawImage(sprite, -62, 443, 124, 76); ctx.restore();
+        return;
+      }
       ctx.save(); ctx.translate(x, 500); ctx.scale(direction, 1);
       ctx.fillStyle = "#59483f"; ctx.beginPath(); ctx.ellipse(0, 0, 29, 17, 0, 0, Math.PI * 2); ctx.fill();
       ctx.beginPath(); ctx.arc(24, -10, 17, 0, Math.PI * 2); ctx.fill();
@@ -215,7 +277,29 @@ export default function BlackCatGame({ onClose }: { onClose: () => void }) {
       ctx.strokeStyle = "#a94b42"; ctx.lineWidth = 4; ctx.beginPath(); ctx.moveTo(10, -18); ctx.lineTo(37, -13); ctx.stroke(); ctx.restore();
     };
 
-    const draw = (time: number, platforms: Platform[], mouseLow: number, mouseHigh: number) => {
+    const drawWitch = (time: number) => {
+      const sprite = spritesRef.current.witch;
+      if (!sprite) return;
+      const bob = Math.sin(time / 420) * 2;
+      ctx.save();
+      ctx.beginPath(); ctx.rect(712, 20, 160, 96); ctx.clip();
+      ctx.drawImage(sprite, 722, 20 + bob, 142, 142);
+      ctx.restore();
+    };
+
+    const drawResident = (x: number, y: number, resident: number, time: number) => {
+      const sprite = spritesRef.current.residents;
+      if (!sprite) return;
+      const cellWidth = sprite.width / 3;
+      const rise = Math.sin(time / 180) * 2;
+      ctx.fillStyle = "#090d20"; ctx.fillRect(x - 47, y - 73, 94, 74);
+      ctx.strokeStyle = "#725378"; ctx.lineWidth = 4; ctx.strokeRect(x - 47, y - 73, 94, 74);
+      ctx.save(); ctx.beginPath(); ctx.rect(x - 45, y - 71, 90, 72); ctx.clip();
+      ctx.drawImage(sprite, resident * cellWidth, 0, cellWidth, sprite.height, x - 43, y - 72 + rise, 86, 86);
+      ctx.restore();
+    };
+
+    const draw = (time: number, platforms: Platform[], mice: MouseHazard[]) => {
       if (backgroundRef.current) ctx.drawImage(backgroundRef.current, 0, 0, WORLD.width, WORLD.height);
       else { ctx.fillStyle = "#091a3a"; ctx.fillRect(0, 0, WORLD.width, WORLD.height); }
       ctx.fillStyle = "#030a1825"; ctx.fillRect(0, 0, WORLD.width, WORLD.height);
@@ -230,21 +314,16 @@ export default function BlackCatGame({ onClose }: { onClose: () => void }) {
       ctx.fillStyle = "#6d3e55"; ctx.fillRect(ledge.x, ledge.y, ledge.w, 9);
       ctx.fillStyle = "#f0bd55"; ctx.fillRect(ledge.x, ledge.y, ledge.w, 3);
 
-      drawMouse(mouseLow, platforms.find((p) => p.id === "rope-low")!.y, 1);
-      drawMouse(mouseHigh, platforms.find((p) => p.id === "rope-high")!.y, -1);
+      mice.forEach((mouse) => drawMouse(mouse.x, mouse.y, mouse.direction));
       drawDog(dogRef.current.x, dogRef.current.direction);
 
       const windowGlow = ctx.createRadialGradient(795, 72, 5, 795, 72, 85);
       windowGlow.addColorStop(0, "#ffe27c99"); windowGlow.addColorStop(1, "#ffcf5000");
       ctx.fillStyle = windowGlow; ctx.fillRect(690, 0, 210, 155);
-      ctx.fillStyle = "#351b52"; ctx.beginPath(); ctx.moveTo(758, 74); ctx.lineTo(781, 34); ctx.lineTo(807, 76); ctx.fill();
-      ctx.fillStyle = "#f0c37c"; ctx.beginPath(); ctx.arc(790, 76, 12, 0, Math.PI * 2); ctx.fill();
-      ctx.fillStyle = "#191021"; ctx.beginPath(); ctx.arc(786, 72, 14, Math.PI, Math.PI * 2); ctx.fill();
+      drawWitch(time);
 
       if (warningRef.current) {
-        ctx.fillStyle = "#d5a076"; ctx.beginPath(); ctx.arc(warningRef.current.x, warningRef.current.y - 8, 12, 0, Math.PI * 2); ctx.fill();
-        ctx.fillStyle = "#332238"; ctx.beginPath(); ctx.arc(warningRef.current.x, warningRef.current.y - 15, 13, Math.PI, Math.PI * 2); ctx.fill();
-        ctx.strokeStyle = "#d5a076"; ctx.lineWidth = 6; ctx.beginPath(); ctx.moveTo(warningRef.current.x + 8, warningRef.current.y - 2); ctx.lineTo(warningRef.current.x + 21, warningRef.current.y + 8); ctx.stroke();
+        drawResident(warningRef.current.x, warningRef.current.y, warningRef.current.resident, time);
         const pulse = 11 + Math.sin(time / 65) * 4;
         ctx.strokeStyle = "#ffda66"; ctx.lineWidth = 3; ctx.beginPath(); ctx.arc(warningRef.current.x, warningRef.current.y, pulse, 0, Math.PI * 2); ctx.stroke();
         ctx.fillStyle = "#fff0a8"; ctx.font = "bold 16px Arial"; ctx.fillText("!", warningRef.current.x - 3, warningRef.current.y + 5);
@@ -271,14 +350,21 @@ export default function BlackCatGame({ onClose }: { onClose: () => void }) {
       ctx.fillStyle = "#f4c85f"; ctx.font = "bold 18px Arial"; ctx.fillText("★", 742, 47);
       ctx.fillStyle = "#fff0c2"; ctx.font = "bold 19px Georgia"; ctx.fillText(String(score).padStart(3, "0"), 770, 47);
       ctx.font = "18px Arial"; ctx.fillStyle = "#e66e91"; ctx.fillText("♥".repeat(hearts), 890, 46);
+      ctx.fillStyle = "#ffe5a1"; ctx.font = "bold 12px Georgia"; ctx.fillText(`LEVEL ${LEVELS[level - 1].label}`, 525, 36);
     };
 
     let last = performance.now();
     const tick = (time: number) => {
       const dt = Math.min((time - last) / 16.67, 2); last = time;
       const platforms = platformsAt(time);
-      const mouseLow = 100 + ((time / 10) % 770);
-      const mouseHigh = 880 - ((time / 12) % 770);
+      const lowRope = platforms.find((p) => p.id === "rope-low")!;
+      const highRope = platforms.find((p) => p.id === "rope-high")!;
+      const mice: MouseHazard[] = [
+        { x: 100 + ((time / difficulty.mouseDivisor) % 770), y: lowRope.y, direction: 1 },
+      ];
+      if (difficulty.mouseCount >= 2) mice.push({ x: 880 - ((time / (difficulty.mouseDivisor + 2)) % 770), y: highRope.y, direction: -1 });
+      if (difficulty.mouseCount >= 3) mice.push({ x: 880 - ((time / (difficulty.mouseDivisor + 1)) % 770), y: lowRope.y, direction: -1 });
+      if (difficulty.mouseCount >= 4) mice.push({ x: 100 + ((time / (difficulty.mouseDivisor + 3)) % 770), y: highRope.y, direction: 1 });
 
       if (phaseRef.current === "playing") {
         const cat = playerRef.current;
@@ -303,39 +389,38 @@ export default function BlackCatGame({ onClose }: { onClose: () => void }) {
           }
         }
 
-        dogRef.current.x += dogRef.current.direction * 1.65 * dt;
+        dogRef.current.x += dogRef.current.direction * difficulty.dogSpeed * dt;
         if (dogRef.current.x > 900) dogRef.current.direction = -1;
         if (dogRef.current.x < 500) dogRef.current.direction = 1;
 
         if (time > nextThrowRef.current) {
-          const sources = [{ x: 340, y: 142 }, { x: 535, y: 235 }, { x: 655, y: 142 }];
+          const sources = [{ x: 335, y: 172, resident: 0 }, { x: 522, y: 270, resident: 1 }, { x: 650, y: 172, resident: 2 }];
           const source = sources[Math.floor(Math.random() * sources.length)];
           warningRef.current = { ...source, until: time + 720 };
-          nextThrowRef.current = time + 2600 + Math.random() * 1500;
+          nextThrowRef.current = time + difficulty.throwMin + Math.random() * difficulty.throwRange;
         }
         if (warningRef.current && time > warningRef.current.until) {
           const warning = warningRef.current;
           hazardsRef.current.push({ x: warning.x, y: warning.y, vx: (Math.random() - .5) * 2.2, vy: .8, kind: Math.floor(Math.random() * 3) });
           warningRef.current = null;
         }
-        hazardsRef.current.forEach((item) => { item.x += item.vx * dt; item.vy += .12 * dt; item.y += item.vy * dt; });
+        hazardsRef.current.forEach((item) => { item.x += item.vx * dt; item.vy += difficulty.projectileGravity * dt; item.y += item.vy * dt; });
         hazardsRef.current = hazardsRef.current.filter((item) => item.y < 555);
 
         const vulnerable = time > cat.invincibleUntil;
         if (vulnerable && cat.y > 466 && Math.abs((cat.x + 19) - dogRef.current.x) < 48) loseTurn();
-        if (vulnerable && circleHitsCat(mouseLow, platforms.find((p) => p.id === "rope-low")!.y - 6, 15)) loseTurn();
-        if (vulnerable && circleHitsCat(mouseHigh, platforms.find((p) => p.id === "rope-high")!.y - 6, 15)) loseTurn();
+        if (vulnerable && mice.some((mouse) => circleHitsCat(mouse.x, mouse.y - 6, 16))) loseTurn();
         if (vulnerable && hazardsRef.current.some((item) => circleHitsCat(item.x, item.y, 11))) loseTurn();
         if (cat.y > WORLD.height + 25) loseTurn();
         if (cat.x > 710 && cat.x < 865 && cat.y + CAT.height <= 118) { setScore((value) => value + 100); setPhase("won"); }
       }
 
-      draw(time, platforms, mouseLow, mouseHigh);
+      draw(time, platforms, mice);
       frameRef.current = requestAnimationFrame(tick);
     };
     frameRef.current = requestAnimationFrame(tick);
     return () => { if (frameRef.current) cancelAnimationFrame(frameRef.current); };
-  }, [hearts, loseTurn, score, setPhase]);
+  }, [hearts, level, loseTurn, score, setPhase]);
 
   const answerQuestion = (answer: string) => {
     setSelected(answer);
@@ -343,7 +428,15 @@ export default function BlackCatGame({ onClose }: { onClose: () => void }) {
   };
 
   const setDirection = (direction: "left" | "right", pressed: boolean) => { keysRef.current[direction] = pressed; };
-  const restart = () => { checkpointRef.current = 0; setFalls(0); setHearts(3); setScore(0); resetCat(0); setPhase("playing"); };
+  const restart = () => { checkpointRef.current = 0; setLevel(1); setFalls(0); setHearts(3); setScore(0); resetCat(0); setPhase("playing"); };
+  const continueJourney = () => {
+    if (level >= LEVELS.length) { restart(); return; }
+    checkpointRef.current = 0;
+    setLevel((value) => value + 1);
+    setHearts(3);
+    resetCat(0);
+    setPhase("playing");
+  };
 
   return (
     <div className="arcade-layer">
@@ -368,7 +461,7 @@ export default function BlackCatGame({ onClose }: { onClose: () => void }) {
               {selected && selected !== QUESTIONS[questionIndex].correct && <small>Not quite. Look at the subject and try again.</small>}
             </div>
           )}
-          {phase === "won" && <div className="win-screen"><span>★</span><h3>Home at last!</h3><p>The black cat is back with the witch. Score: {score}</p><button onClick={restart}>Play again</button></div>}
+          {phase === "won" && <div className="win-screen"><span>★</span><h3>{level < LEVELS.length ? `Level ${LEVELS[level - 1].label} complete!` : "Home at last!"}</h3><p>{level < LEVELS.length ? "The next courtyard is faster and more dangerous." : `The black cat completed every level. Score: ${score}`}</p><button onClick={continueJourney}>{level < LEVELS.length ? "Next level" : "Play again"}</button></div>}
         </div>
         <footer className="game-controls">
           <div className="keys-guide"><span><kbd>←</kbd><kbd>→</kbd> move</span><span><kbd>SPACE</kbd> jump</span><span><kbd>P</kbd> pause</span></div>
