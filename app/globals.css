@@ -109,4 +109,4 @@ button,a { -webkit-tap-highlight-color:transparent; }
 @media(max-width:760px){.alchemy-lab{background-size:100% 100%}.alchemy-scroll-copy{left:6.1%;top:13.2%;width:21.7%;height:38%;padding:5px;gap:5px}.alchemy-scroll-copy small{font-size:clamp(5px,1.1vw,8px);letter-spacing:.7px}.alchemy-scroll-copy strong{font-size:clamp(15px,3.2vw,25px)}.alchemy-scroll-copy span{padding:2px 7px;font-size:clamp(6px,1.2vw,9px)}.tube-group-left,.tube-group-right{top:67.5%;bottom:4.2%;width:28%;grid-template-columns:repeat(7,1fr);grid-template-rows:repeat(2,1fr)}.tube-group-left{left:.7%}.tube-group-right{right:.7%}.tube-group button{width:clamp(22px,3.9vw,32px);height:clamp(36px,6.4vw,52px)}.tube-letter{font-size:clamp(8px,1.7vw,12px)}}
 .tube-group{isolation:auto}
 .vial-art{background-image:url('/assets/alchemy-vial-v2.png');mix-blend-mode:normal}
-.tube-group{top:62.5%;bottom:9.2%}
+.alchemy-lab .tube-group{top:56%;bottom:15.7%}
