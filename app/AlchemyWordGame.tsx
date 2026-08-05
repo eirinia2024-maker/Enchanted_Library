@@ -236,9 +236,8 @@ export default function AlchemyWordGame({ onClose }: { onClose: () => void }) {
 
                 <div className="alchemy-hint">{message}</div>
 
-                <div className="tube-group tube-group-left" aria-label="Пробирки A–G">{ALPHABET.slice(0, 7).map((letter, index) => renderTube(letter, index))}</div>
-                <div className="tube-group tube-group-right" aria-label="Пробирки H–N">{ALPHABET.slice(7, 14).map((letter, index) => renderTube(letter, index + 7))}</div>
-                <div className="tube-group tube-group-bottom" aria-label="Пробирки O–Z">{ALPHABET.slice(14).map((letter, index) => renderTube(letter, index + 14))}</div>
+                <div className="tube-group tube-group-left" aria-label="Пробирки A–M">{ALPHABET.slice(0, 13).map((letter, index) => renderTube(letter, index))}</div>
+                <div className="tube-group tube-group-right" aria-label="Пробирки N–Z">{ALPHABET.slice(13).map((letter, index) => renderTube(letter, index + 13))}</div>
               </>
             )}
 
