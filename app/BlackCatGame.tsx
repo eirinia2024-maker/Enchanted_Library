@@ -39,18 +39,21 @@ const QUESTIONS: Question[] = [
 
 const WORLD = { width: 1000, height: 560 };
 const CAT = { width: 38, height: 32 };
+const GROUND_Y = 519;
+const STACK_STEP = 42;
+const PROP_HEIGHT = 56;
 
 type Phase = "playing" | "quiz" | "won" | "paused";
-type Platform = { id: string; x: number; y: number; w: number; kind: "ground" | "bin" | "fence" | "rope" | "ledge" };
+type Platform = { id: string; x: number; y: number; w: number; kind: "ground" | "stack" | "fence" | "rope" | "ledge" };
 type Projectile = { x: number; y: number; vx: number; vy: number; kind: number };
 type MouseHazard = { x: number; y: number; direction: number };
 
 const LEVELS = [
-  { label: "1–1", bins: [{ x: 120, y: 480 }, { x: 240, y: 438 }, { x: 360, y: 396 }], fenceY: 350, ropes: [290, 220], windowX: 735, windowY: 150, ropeSway: 3, dogSpeed: 1.3, mouseDivisor: 14, mouseCount: 1, throwMin: 3500, throwRange: 1700, projectileGravity: .1 },
-  { label: "1–2", bins: [{ x: 720, y: 480 }, { x: 590, y: 438 }, { x: 455, y: 396 }], fenceY: 350, ropes: [300, 240, 180], windowX: 225, windowY: 120, ropeSway: 4, dogSpeed: 1.5, mouseDivisor: 12, mouseCount: 2, throwMin: 3100, throwRange: 1500, projectileGravity: .11 },
-  { label: "1–3", bins: [{ x: 105, y: 480 }, { x: 270, y: 438 }, { x: 430, y: 396 }], fenceY: 350, ropes: [305, 255, 205, 155], windowX: 675, windowY: 105, ropeSway: 6, dogSpeed: 1.7, mouseDivisor: 10, mouseCount: 3, throwMin: 2600, throwRange: 1250, projectileGravity: .13 },
-  { label: "1–4", bins: [{ x: 735, y: 490 }, { x: 610, y: 458 }, { x: 470, y: 426 }, { x: 320, y: 394 }], fenceY: 345, ropes: [305, 263, 221, 179, 137], windowX: 360, windowY: 90, ropeSway: 8, dogSpeed: 1.95, mouseDivisor: 9, mouseCount: 4, throwMin: 2200, throwRange: 1000, projectileGravity: .15 },
-  { label: "1–5", bins: [{ x: 100, y: 490 }, { x: 255, y: 458 }, { x: 430, y: 426 }, { x: 610, y: 394 }], fenceY: 345, ropes: [305, 268, 231, 194, 157, 120], windowX: 730, windowY: 75, ropeSway: 10, dogSpeed: 2.25, mouseDivisor: 8, mouseCount: 5, throwMin: 1750, throwRange: 800, projectileGravity: .17 },
+  { label: "1–1", stacks: [{ x: 120, height: 1 }, { x: 240, height: 2 }, { x: 360, height: 3 }], fenceY: 350, ropes: [290, 220], windowX: 735, windowY: 150, ropeSway: 3, dogSpeed: 1.3, mouseDivisor: 14, mouseCount: 1, throwMin: 3500, throwRange: 1700, projectileGravity: .1 },
+  { label: "1–2", stacks: [{ x: 720, height: 1 }, { x: 590, height: 2 }, { x: 455, height: 3 }], fenceY: 350, ropes: [300, 240, 180], windowX: 225, windowY: 120, ropeSway: 4, dogSpeed: 1.5, mouseDivisor: 12, mouseCount: 2, throwMin: 3100, throwRange: 1500, projectileGravity: .11 },
+  { label: "1–3", stacks: [{ x: 105, height: 1 }, { x: 270, height: 2 }, { x: 430, height: 3 }], fenceY: 350, ropes: [305, 255, 205, 155], windowX: 675, windowY: 105, ropeSway: 6, dogSpeed: 1.7, mouseDivisor: 10, mouseCount: 3, throwMin: 2600, throwRange: 1250, projectileGravity: .13 },
+  { label: "1–4", stacks: [{ x: 735, height: 1 }, { x: 610, height: 2 }, { x: 470, height: 3 }, { x: 320, height: 4 }], fenceY: 345, ropes: [305, 263, 221, 179, 137], windowX: 360, windowY: 90, ropeSway: 8, dogSpeed: 1.95, mouseDivisor: 9, mouseCount: 4, throwMin: 2200, throwRange: 1000, projectileGravity: .15 },
+  { label: "1–5", stacks: [{ x: 100, height: 1 }, { x: 255, height: 2 }, { x: 430, height: 3 }, { x: 610, height: 4 }], fenceY: 345, ropes: [305, 268, 231, 194, 157, 120], windowX: 730, windowY: 75, ropeSway: 10, dogSpeed: 2.25, mouseDivisor: 8, mouseCount: 5, throwMin: 1750, throwRange: 800, projectileGravity: .17 },
 ];
 
 export default function BlackCatGame({ onClose }: { onClose: () => void }) {
@@ -90,7 +93,7 @@ export default function BlackCatGame({ onClose }: { onClose: () => void }) {
 
   const resetCat = useCallback((checkpoint = checkpointRef.current) => {
     const layout = LEVELS[levelRef.current - 1];
-    const startsRight = layout.bins[0].x > 500;
+    const startsRight = layout.stacks[0].x > 500;
     const ropeIndex = checkpoint === 2 ? 0 : layout.ropes.length - 1;
     const start = checkpoint === 0
       ? { x: startsRight ? 910 : 48, y: 487, support: "ground" }
@@ -129,33 +132,78 @@ export default function BlackCatGame({ onClose }: { onClose: () => void }) {
     image.src = "/assets/alley-library-yard-v2.png";
     image.onload = () => { backgroundRef.current = image; };
 
-    const loadSprite = (key: string, src: string) => {
+    const keyImage = (sprite: HTMLImageElement) => {
+      const layer = document.createElement("canvas");
+      layer.width = sprite.naturalWidth;
+      layer.height = sprite.naturalHeight;
+      const layerContext = layer.getContext("2d", { willReadFrequently: true });
+      if (!layerContext) return layer;
+      layerContext.drawImage(sprite, 0, 0);
+      const pixels = layerContext.getImageData(0, 0, layer.width, layer.height);
+      for (let i = 0; i < pixels.data.length; i += 4) {
+        const red = pixels.data[i];
+        const green = pixels.data[i + 1];
+        const blue = pixels.data[i + 2];
+        if (green > 145 && green > red * 1.38 && green > blue * 1.25) {
+          const dominance = green - Math.max(red, blue);
+          pixels.data[i + 3] = dominance > 105 ? 0 : Math.max(0, 255 - dominance * 2.35);
+        }
+      }
+      layerContext.putImageData(pixels, 0, 0);
+      return layer;
+    };
+
+    const trimSprite = (source: HTMLCanvasElement, startX = 0, endX = source.width) => {
+      const context = source.getContext("2d", { willReadFrequently: true });
+      if (!context) return source;
+      const left = Math.max(0, Math.floor(startX));
+      const right = Math.min(source.width, Math.ceil(endX));
+      const pixels = context.getImageData(left, 0, right - left, source.height);
+      let minX = pixels.width; let minY = pixels.height; let maxX = -1; let maxY = -1;
+      for (let y = 0; y < pixels.height; y += 1) {
+        for (let x = 0; x < pixels.width; x += 1) {
+          if (pixels.data[(y * pixels.width + x) * 4 + 3] > 20) {
+            minX = Math.min(minX, x); minY = Math.min(minY, y);
+            maxX = Math.max(maxX, x); maxY = Math.max(maxY, y);
+          }
+        }
+      }
+      if (maxX < minX || maxY < minY) return source;
+      const padding = 5;
+      minX = Math.max(0, minX - padding); minY = Math.max(0, minY - padding);
+      maxX = Math.min(pixels.width - 1, maxX + padding); maxY = Math.min(pixels.height - 1, maxY + padding);
+      const trimmed = document.createElement("canvas");
+      trimmed.width = maxX - minX + 1; trimmed.height = maxY - minY + 1;
+      trimmed.getContext("2d")?.drawImage(source, left + minX, minY, trimmed.width, trimmed.height, 0, 0, trimmed.width, trimmed.height);
+      return trimmed;
+    };
+
+    const loadSprite = (key: string, src: string, trim = false) => {
       const sprite = new Image();
       sprite.src = src;
       sprite.onload = () => {
-        const layer = document.createElement("canvas");
-        layer.width = sprite.naturalWidth;
-        layer.height = sprite.naturalHeight;
-        const layerContext = layer.getContext("2d", { willReadFrequently: true });
-        if (!layerContext) return;
-        layerContext.drawImage(sprite, 0, 0);
-        const pixels = layerContext.getImageData(0, 0, layer.width, layer.height);
-        for (let i = 0; i < pixels.data.length; i += 4) {
-          const red = pixels.data[i];
-          const green = pixels.data[i + 1];
-          const blue = pixels.data[i + 2];
-          if (green > 145 && green > red * 1.38 && green > blue * 1.25) {
-            const dominance = green - Math.max(red, blue);
-            pixels.data[i + 3] = dominance > 105 ? 0 : Math.max(0, 255 - dominance * 2.35);
-          }
-        }
-        layerContext.putImageData(pixels, 0, 0);
-        spritesRef.current[key] = layer;
+        const layer = keyImage(sprite);
+        spritesRef.current[key] = trim ? trimSprite(layer) : layer;
       };
     };
-    loadSprite("cat", "/assets/cat-run-sheet-v2.png");
-    loadSprite("dog", "/assets/bulldog-run-sheet-v2.png");
-    loadSprite("mouse", "/assets/mouse-run-sheet-v2.png");
+
+    const loadSheet = (key: string, src: string, cuts: number[]) => {
+      const sprite = new Image();
+      sprite.src = src;
+      sprite.onload = () => {
+        const layer = keyImage(sprite);
+        for (let frame = 0; frame < cuts.length - 1; frame += 1) {
+          spritesRef.current[`${key}-${frame}`] = trimSprite(layer, layer.width * cuts[frame], layer.width * cuts[frame + 1]);
+        }
+      };
+    };
+
+    loadSprite("cat-idle", "/assets/cat-idle-source-v3.png", true);
+    loadSheet("cat", "/assets/cat-run-sheet-v2.png", [0, .31, .62, 1]);
+    loadSheet("dog", "/assets/bulldog-run-sheet-v2.png", [0, .32, .635, 1]);
+    loadSheet("mouse", "/assets/mouse-run-sheet-v2.png", [0, .333, .64, 1]);
+    loadSprite("crate", "/assets/library-crate-source-v1.png", true);
+    loadSprite("barrel", "/assets/library-barrel-source-v1.png", true);
     loadSprite("witch", "/assets/witch-source-v2.png");
     loadSprite("residents", "/assets/residents-source-v2.png");
   }, []);
@@ -187,7 +235,7 @@ export default function BlackCatGame({ onClose }: { onClose: () => void }) {
     nextThrowRef.current = performance.now() + 1700;
 
     const platformsAt = (time: number): Platform[] => {
-      const bins: Platform[] = difficulty.bins.map((bin, index) => ({ id: `bin-${index}`, x: bin.x, y: bin.y, w: 75, kind: "bin" }));
+      const stacks: Platform[] = difficulty.stacks.map((stack, index) => ({ id: `stack-${index}`, x: stack.x, y: GROUND_Y - PROP_HEIGHT - (stack.height - 1) * STACK_STEP, w: 64, kind: "stack" }));
       const ropes: Platform[] = difficulty.ropes.map((baseY, index) => ({
         id: `rope-${index}`,
         x: 80,
@@ -196,8 +244,8 @@ export default function BlackCatGame({ onClose }: { onClose: () => void }) {
         kind: "rope",
       }));
       return [
-        { id: "ground", x: 0, y: 519, w: 1000, kind: "ground" },
-        ...bins,
+        { id: "ground", x: 0, y: GROUND_Y, w: 1000, kind: "ground" },
+        ...stacks,
         { id: "fence", x: 28, y: difficulty.fenceY, w: 915, kind: "fence" },
         ...ropes,
         { id: "ledge", x: difficulty.windowX, y: difficulty.windowY, w: 160, kind: "ledge" },
@@ -212,13 +260,14 @@ export default function BlackCatGame({ onClose }: { onClose: () => void }) {
     };
 
     const drawCat = (x: number, y: number, facing: number, blinking: boolean, frame: number) => {
-      const sprite = spritesRef.current.cat;
+      const sprite = spritesRef.current[frame < 0 ? "cat-idle" : `cat-${frame}`];
       if (sprite) {
-        const cellWidth = sprite.width / 3;
+        const drawHeight = frame < 0 ? 67 : 62;
+        const drawWidth = drawHeight * sprite.width / sprite.height;
         ctx.save();
         if (blinking) ctx.globalAlpha = .35;
         ctx.translate(x + CAT.width / 2, 0); ctx.scale(facing, 1);
-        ctx.drawImage(sprite, frame * cellWidth, 0, cellWidth, sprite.height, -52, y - 35, 104, 70);
+        ctx.drawImage(sprite, -drawWidth / 2, y + CAT.height - drawHeight, drawWidth, drawHeight);
         ctx.restore();
         return;
       }
@@ -235,11 +284,22 @@ export default function BlackCatGame({ onClose }: { onClose: () => void }) {
       ctx.restore(); ctx.globalAlpha = 1;
     };
 
-    const drawBin = (p: Platform) => {
-      ctx.fillStyle = "#28313b"; ctx.fillRect(p.x + 7, p.y, p.w - 14, 48);
-      ctx.fillStyle = "#4c5964"; ctx.fillRect(p.x + 2, p.y - 6, p.w - 4, 9);
-      ctx.strokeStyle = "#89939a"; ctx.lineWidth = 2;
-      for (let x = p.x + 17; x < p.x + p.w - 9; x += 16) { ctx.beginPath(); ctx.moveTo(x, p.y + 5); ctx.lineTo(x, p.y + 43); ctx.stroke(); }
+    const drawStack = (p: Platform, stackIndex: number) => {
+      const count = difficulty.stacks[stackIndex].height;
+      for (let layer = 0; layer < count; layer += 1) {
+        const isCrate = (stackIndex + layer) % 3 !== 1;
+        const sprite = spritesRef.current[isCrate ? "crate" : "barrel"];
+        const height = PROP_HEIGHT;
+        const width = sprite ? height * sprite.width / sprite.height : isCrate ? 60 : 46;
+        const bottom = GROUND_Y - layer * STACK_STEP;
+        if (sprite) ctx.drawImage(sprite, p.x + (p.w - width) / 2, bottom - height, width, height);
+        else {
+          ctx.fillStyle = isCrate ? "#6d4329" : "#553523";
+          ctx.fillRect(p.x + (p.w - width) / 2, bottom - height, width, height);
+          ctx.strokeStyle = "#c28a48"; ctx.lineWidth = 3;
+          ctx.strokeRect(p.x + (p.w - width) / 2, bottom - height, width, height);
+        }
+      }
     };
 
     const drawLaundry = (y: number, time: number, row: number) => {
@@ -256,12 +316,13 @@ export default function BlackCatGame({ onClose }: { onClose: () => void }) {
     };
 
     const drawMouse = (x: number, y: number, direction: number, time: number) => {
-      const sprite = spritesRef.current.mouse;
+      const frame = Math.floor(time / 95 + x / 48) % 3;
+      const sprite = spritesRef.current[`mouse-${frame}`];
       if (sprite) {
-        const cellWidth = sprite.width / 3;
-        const frame = Math.floor(time / 95 + x / 48) % 3;
+        const drawHeight = 39;
+        const drawWidth = drawHeight * sprite.width / sprite.height;
         ctx.save(); ctx.translate(x, 0); ctx.scale(direction, 1);
-        ctx.drawImage(sprite, frame * cellWidth, 0, cellWidth, sprite.height, -27, y - 38, 54, 45); ctx.restore();
+        ctx.drawImage(sprite, -drawWidth / 2, y - drawHeight, drawWidth, drawHeight); ctx.restore();
         return;
       }
       ctx.save(); ctx.translate(x, y); ctx.scale(direction, 1);
@@ -273,12 +334,13 @@ export default function BlackCatGame({ onClose }: { onClose: () => void }) {
     };
 
     const drawDog = (x: number, direction: number, time: number) => {
-      const sprite = spritesRef.current.dog;
+      const frame = Math.floor(time / 115) % 3;
+      const sprite = spritesRef.current[`dog-${frame}`];
       if (sprite) {
-        const cellWidth = sprite.width / 3;
-        const frame = Math.floor(time / 115) % 3;
+        const drawHeight = 73;
+        const drawWidth = drawHeight * sprite.width / sprite.height;
         ctx.save(); ctx.translate(x, 0); ctx.scale(direction, 1);
-        ctx.drawImage(sprite, frame * cellWidth, 0, cellWidth, sprite.height, -68, 441, 136, 78); ctx.restore();
+        ctx.drawImage(sprite, -drawWidth / 2, GROUND_Y - drawHeight, drawWidth, drawHeight); ctx.restore();
         return;
       }
       ctx.save(); ctx.translate(x, 500); ctx.scale(direction, 1);
@@ -323,7 +385,7 @@ export default function BlackCatGame({ onClose }: { onClose: () => void }) {
       else { ctx.fillStyle = "#091a3a"; ctx.fillRect(0, 0, WORLD.width, WORLD.height); }
       ctx.fillStyle = "#030a1825"; ctx.fillRect(0, 0, WORLD.width, WORLD.height);
 
-      platforms.filter((p) => p.kind === "bin").forEach(drawBin);
+      platforms.filter((p) => p.kind === "stack").forEach(drawStack);
       const fence = platforms.find((p) => p.kind === "fence")!;
       ctx.fillStyle = "#5d4050"; ctx.fillRect(fence.x, fence.y - 3, fence.w, 10);
       ctx.strokeStyle = "#c18d54"; ctx.lineWidth = 2; ctx.strokeRect(fence.x, fence.y - 3, fence.w, 10);
@@ -352,7 +414,7 @@ export default function BlackCatGame({ onClose }: { onClose: () => void }) {
       });
 
       const cat = playerRef.current;
-      const catFrame = !cat.grounded ? 2 : Math.abs(cat.vx) > .5 ? Math.floor(time / 105) % 3 : 0;
+      const catFrame = !cat.grounded ? 2 : Math.abs(cat.vx) > .5 ? Math.floor(time / 105) % 3 : -1;
       drawCat(cat.x, cat.y, cat.facing, performance.now() < cat.invincibleUntil && Math.floor(time / 90) % 2 === 0, catFrame);
 
       ctx.fillStyle = "#f7ead7ed"; ctx.fillRect(17, 16, 184, 74);
@@ -471,7 +533,7 @@ export default function BlackCatGame({ onClose }: { onClose: () => void }) {
           <div className="arcade-actions"><button disabled={!['playing', 'paused'].includes(phase)} onClick={() => setPhase(phaseRef.current === "paused" ? "playing" : "paused")} aria-label="Pause game">{phase === "paused" ? "▶" : "Ⅱ"}</button><button onClick={onClose} aria-label="Close game">×</button></div>
         </header>
         <div className="game-stage">
-          <canvas ref={canvasRef} width={WORLD.width} height={WORLD.height} aria-label="Guide the black cat across bins, fence, clotheslines and into the witch's window" />
+          <canvas ref={canvasRef} width={WORLD.width} height={WORLD.height} aria-label="Guide the black cat across stacked crates and barrels, the fence, clotheslines and into the witch's window" />
           {phase === "paused" && <div className="pause-screen"><span>PAUSED</span><button onClick={() => setPhase("playing")}>Continue</button></div>}
           {phase === "quiz" && (
             <div className="fall-quiz">
@@ -490,7 +552,7 @@ export default function BlackCatGame({ onClose }: { onClose: () => void }) {
         <footer className="game-controls">
           <div className="keys-guide"><span><kbd>←</kbd><kbd>→</kbd> move</span><span><kbd>SPACE</kbd> jump</span><span><kbd>P</kbd> pause</span></div>
           <div className="touch-controls"><button onPointerDown={() => setDirection("left", true)} onPointerUp={() => setDirection("left", false)} onPointerLeave={() => setDirection("left", false)}>←</button><button onPointerDown={() => setDirection("right", true)} onPointerUp={() => setDirection("right", false)} onPointerLeave={() => setDirection("right", false)}>→</button><button onPointerDown={jump}>↑</button></div>
-          <p>{LEVELS[level - 1].bins.length} bins → fence → {LEVELS[level - 1].ropes.length} lines → window</p>
+          <p>{LEVELS[level - 1].stacks.length} prop stacks → fence → {LEVELS[level - 1].ropes.length} lines → window</p>
         </footer>
       </section>
     </div>
