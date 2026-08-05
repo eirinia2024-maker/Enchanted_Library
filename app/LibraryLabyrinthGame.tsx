@@ -95,13 +95,13 @@ const QUESTIONS: Record<TopicId, Question[]> = {
   ],
 };
 
-const LOCATION_INDEX: Record<LocationId, number> = {
-  entrance: 0,
-  portcullis: 1,
-  fork2: 2,
-  fork3: 3,
-  deadEnd: 4,
-  treasure: 5,
+const LOCATION_SLUG: Record<LocationId, string> = {
+  entrance: "entrance",
+  portcullis: "portcullis",
+  fork2: "fork-2",
+  fork3: "fork-3",
+  deadEnd: "dead-end",
+  treasure: "treasure",
 };
 
 const LOCATION_NAMES: Record<LocationId, string> = {
@@ -140,11 +140,12 @@ function buildRoute(): RouteStep[] {
   });
 }
 
-function sheetFor(view: View): string {
-  if (view === "topic" || view === "question" || view === "final") return "/assets/library-labyrinth-scroll-sheet-v1.png";
-  if (view === "routes") return "/assets/library-labyrinth-arrows-sheet-v1.png";
-  if (view === "ghost") return "/assets/library-labyrinth-ghost-sheet-v1.png";
-  return "/assets/library-labyrinth-book-sheet-v1.png";
+function assetFor(view: View, location: LocationId): string {
+  let state = "book";
+  if (view === "topic" || view === "question" || view === "final") state = "scroll";
+  if (view === "routes") state = "arrows";
+  if (view === "ghost") state = "ghost";
+  return `/assets/library-labyrinth-${state}-${LOCATION_SLUG[location]}-wide-v1.png`;
 }
 
 export default function LibraryLabyrinthGame({ onClose }: Props) {
@@ -172,10 +173,8 @@ export default function LibraryLabyrinthGame({ onClose }: Props) {
 
   const activeTopic = useMemo(() => TOPICS.find((item) => item.id === topic) ?? null, [topic]);
   const frameStyle = useMemo(() => {
-    const index = LOCATION_INDEX[location];
     return {
-      backgroundImage: `url(${sheetFor(view)})`,
-      backgroundPosition: `${(index % 3) * 50}% ${Math.floor(index / 3) * 100}%`,
+      backgroundImage: `url(${assetFor(view, location)})`,
     };
   }, [location, view]);
 
