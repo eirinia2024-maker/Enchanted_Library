@@ -2,8 +2,8 @@ import type { Metadata } from "next";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "Wordlore — игры для изучения английского",
-  description: "Короткие игровые приключения для английской лексики, правописания и грамматики.",
+  title: "Enchanted Library — English Learning Games",
+  description: "Magical mini-games for learning English vocabulary, spelling, and grammar.",
   icons: { icon: "/favicon.svg" },
 };
 
