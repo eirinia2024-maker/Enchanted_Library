@@ -76,6 +76,7 @@ export default function BlackCatGame({ onClose }: { onClose: () => void }) {
   const startTimeRef = useRef(0);
   const dogsRef = useRef([{ x: 710, direction: 1 }]);
   const playerRef = useRef({ x: 48, y: 487, vx: 0, vy: 0, grounded: true, support: "ground", facing: 1, invincibleUntil: 0 });
+  const safePositionRef = useRef({ x: 48, y: 487, support: "ground", facing: 1 });
   const questionBag = useRef<number[]>([]);
   const [phase, setPhaseState] = useState<Phase>("playing");
   const [questionIndex, setQuestionIndex] = useState(0);
@@ -123,6 +124,14 @@ export default function BlackCatGame({ onClose }: { onClose: () => void }) {
           ? { x: startsRight ? 850 : 100, y: layout.ropes[0] - CAT.height, support: "rope-0" }
           : { x: layout.windowX > 500 ? 120 : 820, y: layout.ropes[ropeIndex] - CAT.height, support: `rope-${ropeIndex}` };
     playerRef.current = { x: start.x, y: start.y, vx: 0, vy: 0, grounded: true, support: start.support, facing: startsRight ? -1 : 1, invincibleUntil: performance.now() + 1100 };
+    safePositionRef.current = { x: start.x, y: start.y, support: start.support, facing: startsRight ? -1 : 1 };
+    hazardsRef.current = [];
+    warningRef.current = null;
+  }, []);
+
+  const restoreSafeCat = useCallback(() => {
+    const safe = safePositionRef.current;
+    playerRef.current = { ...safe, vx: 0, vy: 0, grounded: true, invincibleUntil: performance.now() + 1100 };
     hazardsRef.current = [];
     warningRef.current = null;
   }, []);
@@ -133,7 +142,7 @@ export default function BlackCatGame({ onClose }: { onClose: () => void }) {
     nextQuestion();
     setFalls((value) => value + 1);
     setHearts((value) => {
-      if (value <= 1) { checkpointRef.current = 0; return 3; }
+      if (value <= 1) return 3;
       return value - 1;
     });
     setPhase("quiz");
@@ -574,6 +583,7 @@ export default function BlackCatGame({ onClose }: { onClose: () => void }) {
             const nextBottom = cat.y + CAT.height;
             if (previousBottom <= p.y + 5 && nextBottom >= p.y && cat.x + CAT.width - 6 > p.x && cat.x + 6 < p.x + p.w) {
               cat.y = p.y - CAT.height; cat.vy = 0; cat.grounded = true; cat.support = p.id;
+              safePositionRef.current = { x: cat.x, y: cat.y, support: p.id, facing: cat.facing };
               const ropeIndex = p.kind === "rope" ? Number(p.id.split("-")[1]) : -1;
               const reached = p.id === "fence" ? 1 : ropeIndex === 0 ? 2 : ropeIndex === difficulty.ropes.length - 1 ? 3 : checkpointRef.current;
               if (reached > checkpointRef.current) { checkpointRef.current = reached; setScore((value) => value + 25); }
@@ -619,9 +629,19 @@ export default function BlackCatGame({ onClose }: { onClose: () => void }) {
   }, [hearts, level, loseTurn, playEffect, score, setPhase]);
 
   const answerQuestion = (answer: string) => {
+    if (selected) return;
     setSelected(answer);
-    playEffect(answer === QUESTIONS[questionIndex].correct ? "correct" : "wrong");
-    if (answer === QUESTIONS[questionIndex].correct) window.setTimeout(() => { resetCat(); setPhase("playing"); setSelected(null); }, 650);
+    const isCorrect = answer === QUESTIONS[questionIndex].correct;
+    playEffect(isCorrect ? "correct" : "wrong");
+    window.setTimeout(() => {
+      if (isCorrect) restoreSafeCat();
+      else {
+        checkpointRef.current = 0;
+        resetCat(0);
+      }
+      setPhase("playing");
+      setSelected(null);
+    }, 650);
   };
 
   const setDirection = (direction: "left" | "right", pressed: boolean) => { keysRef.current[direction] = pressed; };
@@ -664,12 +684,12 @@ export default function BlackCatGame({ onClose }: { onClose: () => void }) {
             <div className="fall-quiz">
               <span>THE CAT FELL · QUESTION {falls} · PRESENT SIMPLE</span>
               <h3>{QUESTIONS[questionIndex].prompt}</h3>
-              <p>Choose the correct answer to return to your last checkpoint.</p>
+              <p>A correct answer keeps your height. A wrong answer returns you to the courtyard.</p>
               <div>{QUESTIONS[questionIndex].options.map((option) => {
                 const state = selected === option ? (option === QUESTIONS[questionIndex].correct ? "correct" : "wrong") : "";
-                return <button className={state} key={option} onClick={() => answerQuestion(option)}>{option}<i>{state === "correct" ? "✓" : state === "wrong" ? "×" : "→"}</i></button>;
+                return <button className={state} disabled={selected !== null} key={option} onClick={() => answerQuestion(option)}>{option}<i>{state === "correct" ? "✓" : state === "wrong" ? "×" : "→"}</i></button>;
               })}</div>
-              {selected && selected !== QUESTIONS[questionIndex].correct && <small>Not quite. Look at the subject and try again.</small>}
+              {selected && selected !== QUESTIONS[questionIndex].correct && <small>Wrong answer — returning to the courtyard.</small>}
             </div>
           )}
           {phase === "won" && level < LEVELS.length && (
