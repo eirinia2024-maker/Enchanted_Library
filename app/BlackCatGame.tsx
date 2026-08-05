@@ -50,11 +50,11 @@ type MouseHazard = { x: number; y: number; direction: number };
 type SceneWindow = { x: number; y: number; w: number; h: number; row: number; column: number };
 
 const LEVELS = [
-  { label: "1–1", stacks: [{ x: 120, height: 1 }, { x: 240, height: 2 }, { x: 360, height: 3 }], fenceY: 350, ropes: [290, 220], floors: 2, windowX: 716, windowY: 150, windowW: 108, windowH: 88, windowTop: 62, targetColumn: 3, ropeSway: 3, dogSpeed: 1.3, mouseDivisor: 14, mouseCount: 1, throwMin: 3500, throwRange: 1700, projectileGravity: .1 },
-  { label: "1–2", stacks: [{ x: 720, height: 1 }, { x: 590, height: 2 }, { x: 455, height: 3 }], fenceY: 350, ropes: [300, 240, 180], floors: 3, windowX: 244, windowY: 120, windowW: 92, windowH: 76, windowTop: 44, targetColumn: 0, ropeSway: 4, dogSpeed: 1.5, mouseDivisor: 12, mouseCount: 2, throwMin: 3100, throwRange: 1500, projectileGravity: .11 },
-  { label: "1–3", stacks: [{ x: 105, height: 1 }, { x: 270, height: 2 }, { x: 430, height: 3 }], fenceY: 350, ropes: [305, 255, 205, 155], floors: 4, windowX: 569, windowY: 105, windowW: 82, windowH: 68, windowTop: 37, targetColumn: 2, ropeSway: 6, dogSpeed: 1.7, mouseDivisor: 10, mouseCount: 3, throwMin: 2600, throwRange: 1250, projectileGravity: .13 },
-  { label: "1–4", stacks: [{ x: 735, height: 1 }, { x: 610, height: 2 }, { x: 470, height: 3 }, { x: 320, height: 4 }], fenceY: 345, ropes: [305, 263, 221, 179, 137], floors: 5, windowX: 414, windowY: 90, windowW: 72, windowH: 60, windowTop: 30, targetColumn: 1, ropeSway: 8, dogSpeed: 1.95, mouseDivisor: 9, mouseCount: 4, throwMin: 2200, throwRange: 1000, projectileGravity: .15 },
-  { label: "1–5", stacks: [{ x: 100, height: 1 }, { x: 255, height: 2 }, { x: 430, height: 3 }, { x: 610, height: 4 }], fenceY: 345, ropes: [305, 268, 231, 194, 157, 120], floors: 6, windowX: 741, windowY: 75, windowW: 58, windowH: 48, windowTop: 27, targetColumn: 3, ropeSway: 10, dogSpeed: 2.25, mouseDivisor: 8, mouseCount: 5, throwMin: 1750, throwRange: 800, projectileGravity: .17 },
+  { label: "1–1", stacks: [{ x: 120, height: 1 }, { x: 240, height: 2 }, { x: 360, height: 3 }], fenceY: 338, ropes: [290, 220], floors: 2, windowX: 716, windowY: 150, windowW: 108, windowH: 88, windowTop: 62, targetColumn: 3, ropeSway: 3, dogSpeed: 1.3, dogCount: 1, mouseDivisor: 14, mouseCount: 2, throwMin: 3500, throwRange: 1700, projectileGravity: .1 },
+  { label: "1–2", stacks: [{ x: 720, height: 1 }, { x: 590, height: 2 }, { x: 455, height: 3 }], fenceY: 338, ropes: [300, 240, 180], floors: 3, windowX: 244, windowY: 120, windowW: 92, windowH: 76, windowTop: 44, targetColumn: 0, ropeSway: 4, dogSpeed: 1.5, dogCount: 1, mouseDivisor: 12, mouseCount: 3, throwMin: 3100, throwRange: 1500, projectileGravity: .11 },
+  { label: "1–3", stacks: [{ x: 105, height: 1 }, { x: 270, height: 2 }, { x: 430, height: 3 }], fenceY: 338, ropes: [305, 255, 205, 155], floors: 4, windowX: 569, windowY: 105, windowW: 82, windowH: 68, windowTop: 37, targetColumn: 2, ropeSway: 6, dogSpeed: 1.7, dogCount: 1, mouseDivisor: 10, mouseCount: 4, throwMin: 2600, throwRange: 1250, projectileGravity: .13 },
+  { label: "1–4", stacks: [{ x: 735, height: 1 }, { x: 610, height: 2 }, { x: 470, height: 3 }, { x: 320, height: 4 }], fenceY: 338, ropes: [305, 263, 221, 179, 137], floors: 5, windowX: 414, windowY: 90, windowW: 72, windowH: 60, windowTop: 30, targetColumn: 1, ropeSway: 8, dogSpeed: 1.95, dogCount: 2, mouseDivisor: 9, mouseCount: 5, throwMin: 2200, throwRange: 1000, projectileGravity: .15 },
+  { label: "1–5", stacks: [{ x: 100, height: 1 }, { x: 255, height: 2 }, { x: 430, height: 3 }, { x: 610, height: 4 }], fenceY: 338, ropes: [305, 268, 231, 194, 157, 120], floors: 6, windowX: 741, windowY: 75, windowW: 58, windowH: 48, windowTop: 27, targetColumn: 3, ropeSway: 10, dogSpeed: 2.25, dogCount: 2, mouseDivisor: 8, mouseCount: 6, throwMin: 1750, throwRange: 800, projectileGravity: .17 },
 ];
 
 export default function BlackCatGame({ onClose }: { onClose: () => void }) {
@@ -70,7 +70,7 @@ export default function BlackCatGame({ onClose }: { onClose: () => void }) {
   const nextThrowRef = useRef(2400);
   const warningRef = useRef<(SceneWindow & { until: number; resident: number }) | null>(null);
   const startTimeRef = useRef(0);
-  const dogRef = useRef({ x: 710, direction: 1 });
+  const dogsRef = useRef([{ x: 710, direction: 1 }]);
   const playerRef = useRef({ x: 48, y: 487, vx: 0, vy: 0, grounded: true, support: "ground", facing: 1, invincibleUntil: 0 });
   const questionBag = useRef<number[]>([]);
   const [phase, setPhaseState] = useState<Phase>("playing");
@@ -206,6 +206,7 @@ export default function BlackCatGame({ onClose }: { onClose: () => void }) {
     loadSprite("crate", "/assets/library-crate-source-v1.png", true);
     loadSprite("barrel", "/assets/library-barrel-source-v1.png", true);
     loadSprite("window-open", "/assets/library-window-open-source-v1.png", true);
+    loadSprite("window-closed", "/assets/library-window-closed-source-v2.png", true);
     loadSprite("fence-rail", "/assets/library-fence-rail-source-v1.png", true);
     loadSheet("laundry", "/assets/library-laundry-line-source-v1.png", [0, .235, .36, .5, .65, .79, 1]);
     loadSprite("witch", "/assets/witch-source-v2.png", true);
@@ -236,6 +237,11 @@ export default function BlackCatGame({ onClose }: { onClose: () => void }) {
     if (!ctx) return;
     startTimeRef.current = performance.now();
     const difficulty = LEVELS[level - 1];
+    if (dogsRef.current.length !== difficulty.dogCount) {
+      dogsRef.current = difficulty.dogCount === 2
+        ? [{ x: 245, direction: 1 }, { x: 755, direction: -1 }]
+        : [{ x: 710, direction: 1 }];
+    }
     nextThrowRef.current = performance.now() + 1700;
 
     const platformsAt = (time: number): Platform[] => {
@@ -383,6 +389,12 @@ export default function BlackCatGame({ onClose }: { onClose: () => void }) {
     const innerWindow = (slot: SceneWindow) => ({ x: slot.x + slot.w * .29, y: slot.y + slot.h * .17, w: slot.w * .42, h: slot.h * .68 });
 
     const drawClosedWindow = (slot: SceneWindow) => {
+      const sprite = spritesRef.current["window-closed"];
+      if (sprite) {
+        const width = slot.h * sprite.width / sprite.height;
+        ctx.drawImage(sprite, slot.x + slot.w / 2 - width / 2, slot.y, width, slot.h);
+        return;
+      }
       const radius = Math.max(4, slot.w * .15);
       ctx.fillStyle = "#766080"; ctx.beginPath(); ctx.roundRect(slot.x + slot.w * .25, slot.y + slot.h * .05, slot.w * .5, slot.h * .91, radius); ctx.fill();
       ctx.fillStyle = "#17142d"; ctx.beginPath(); ctx.roundRect(slot.x + slot.w * .29, slot.y + slot.h * .11, slot.w * .42, slot.h * .76, radius * .7); ctx.fill();
@@ -477,7 +489,7 @@ export default function BlackCatGame({ onClose }: { onClose: () => void }) {
       ctx.fillStyle = "#c09b73"; ctx.fillRect(ledge.x + ledge.w * .27, ledge.y - 2, ledge.w * .46, 3);
 
       mice.forEach((mouse) => drawMouse(mouse.x, mouse.y, mouse.direction, time));
-      drawDog(dogRef.current.x, dogRef.current.direction, time);
+      dogsRef.current.forEach((dog, index) => drawDog(dog.x, dog.direction, time + index * 145));
 
       if (warningRef.current) {
         const centerX = warningRef.current.x + warningRef.current.w / 2;
@@ -549,9 +561,11 @@ export default function BlackCatGame({ onClose }: { onClose: () => void }) {
           }
         }
 
-        dogRef.current.x += dogRef.current.direction * difficulty.dogSpeed * dt;
-        if (dogRef.current.x > 928) { dogRef.current.x = 928; dogRef.current.direction = -1; }
-        if (dogRef.current.x < 72) { dogRef.current.x = 72; dogRef.current.direction = 1; }
+        dogsRef.current.forEach((dog) => {
+          dog.x += dog.direction * difficulty.dogSpeed * dt;
+          if (dog.x > 928) { dog.x = 928; dog.direction = -1; }
+          if (dog.x < 72) { dog.x = 72; dog.direction = 1; }
+        });
 
         if (time > nextThrowRef.current) {
           const neighborWindows = windowsForLevel().filter((slot) => !(slot.row === 0 && slot.column === difficulty.targetColumn));
@@ -568,7 +582,8 @@ export default function BlackCatGame({ onClose }: { onClose: () => void }) {
         hazardsRef.current = hazardsRef.current.filter((item) => item.y < 555);
 
         const vulnerable = time > cat.invincibleUntil;
-        if (vulnerable && cat.y > 466 && Math.abs((cat.x + 19) - dogRef.current.x) < 48) loseTurn();
+        const dogCanReach = cat.y + CAT.height > GROUND_Y - 73;
+        if (vulnerable && dogCanReach && dogsRef.current.some((dog) => Math.abs((cat.x + CAT.width / 2) - dog.x) < 55)) loseTurn();
         if (vulnerable && mice.some((mouse) => circleHitsCat(mouse.x, mouse.y - 6, 16))) loseTurn();
         if (vulnerable && hazardsRef.current.some((item) => circleHitsCat(item.x, item.y, 11))) loseTurn();
         if (cat.y > WORLD.height + 25) loseTurn();
