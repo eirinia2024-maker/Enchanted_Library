@@ -39,12 +39,6 @@ const QUESTIONS: Question[] = [
 
 const WORLD = { width: 1000, height: 560 };
 const CAT = { width: 38, height: 32 };
-const CHECKPOINTS = [
-  { x: 48, y: 487 },
-  { x: 85, y: 338 },
-  { x: 115, y: 255 },
-  { x: 120, y: 158 },
-];
 
 type Phase = "playing" | "quiz" | "won" | "paused";
 type Platform = { id: string; x: number; y: number; w: number; kind: "ground" | "bin" | "fence" | "rope" | "ledge" };
@@ -52,9 +46,11 @@ type Projectile = { x: number; y: number; vx: number; vy: number; kind: number }
 type MouseHazard = { x: number; y: number; direction: number };
 
 const LEVELS = [
-  { label: "1–1", ropeSway: 3, dogSpeed: 1.35, mouseDivisor: 13, mouseCount: 1, throwMin: 3300, throwRange: 1700, projectileGravity: .1 },
-  { label: "1–2", ropeSway: 6, dogSpeed: 1.75, mouseDivisor: 10, mouseCount: 2, throwMin: 2500, throwRange: 1200, projectileGravity: .13 },
-  { label: "1–3", ropeSway: 9, dogSpeed: 2.15, mouseDivisor: 8, mouseCount: 4, throwMin: 1800, throwRange: 900, projectileGravity: .16 },
+  { label: "1–1", bins: [{ x: 120, y: 480 }, { x: 240, y: 438 }, { x: 360, y: 396 }], fenceY: 350, ropes: [290, 220], windowX: 735, windowY: 150, ropeSway: 3, dogSpeed: 1.3, mouseDivisor: 14, mouseCount: 1, throwMin: 3500, throwRange: 1700, projectileGravity: .1 },
+  { label: "1–2", bins: [{ x: 720, y: 480 }, { x: 590, y: 438 }, { x: 455, y: 396 }], fenceY: 350, ropes: [300, 240, 180], windowX: 225, windowY: 120, ropeSway: 4, dogSpeed: 1.5, mouseDivisor: 12, mouseCount: 2, throwMin: 3100, throwRange: 1500, projectileGravity: .11 },
+  { label: "1–3", bins: [{ x: 105, y: 480 }, { x: 270, y: 438 }, { x: 430, y: 396 }], fenceY: 350, ropes: [305, 255, 205, 155], windowX: 675, windowY: 105, ropeSway: 6, dogSpeed: 1.7, mouseDivisor: 10, mouseCount: 2, throwMin: 2600, throwRange: 1250, projectileGravity: .13 },
+  { label: "1–4", bins: [{ x: 735, y: 490 }, { x: 610, y: 458 }, { x: 470, y: 426 }, { x: 320, y: 394 }], fenceY: 345, ropes: [305, 263, 221, 179, 137], windowX: 360, windowY: 90, ropeSway: 8, dogSpeed: 1.95, mouseDivisor: 9, mouseCount: 3, throwMin: 2200, throwRange: 1000, projectileGravity: .15 },
+  { label: "1–5", bins: [{ x: 100, y: 490 }, { x: 255, y: 458 }, { x: 430, y: 426 }, { x: 610, y: 394 }], fenceY: 345, ropes: [305, 268, 231, 194, 157, 120], windowX: 730, windowY: 75, ropeSway: 10, dogSpeed: 2.25, mouseDivisor: 8, mouseCount: 4, throwMin: 1750, throwRange: 800, projectileGravity: .17 },
 ];
 
 export default function BlackCatGame({ onClose }: { onClose: () => void }) {
@@ -64,6 +60,7 @@ export default function BlackCatGame({ onClose }: { onClose: () => void }) {
   const frameRef = useRef<number | null>(null);
   const keysRef = useRef({ left: false, right: false });
   const phaseRef = useRef<Phase>("playing");
+  const levelRef = useRef(1);
   const checkpointRef = useRef(0);
   const hazardsRef = useRef<Projectile[]>([]);
   const nextThrowRef = useRef(2400);
@@ -92,8 +89,17 @@ export default function BlackCatGame({ onClose }: { onClose: () => void }) {
   }, []);
 
   const resetCat = useCallback((checkpoint = checkpointRef.current) => {
-    const start = CHECKPOINTS[checkpoint];
-    playerRef.current = { x: start.x, y: start.y, vx: 0, vy: 0, grounded: true, support: checkpoint === 0 ? "ground" : checkpoint === 1 ? "fence" : checkpoint === 2 ? "rope-low" : "rope-high", facing: 1, invincibleUntil: performance.now() + 1100 };
+    const layout = LEVELS[levelRef.current - 1];
+    const startsRight = layout.bins[0].x > 500;
+    const ropeIndex = checkpoint === 2 ? 0 : layout.ropes.length - 1;
+    const start = checkpoint === 0
+      ? { x: startsRight ? 910 : 48, y: 487, support: "ground" }
+      : checkpoint === 1
+        ? { x: startsRight ? 880 : 70, y: layout.fenceY - CAT.height, support: "fence" }
+        : checkpoint === 2
+          ? { x: startsRight ? 850 : 100, y: layout.ropes[0] - CAT.height, support: "rope-0" }
+          : { x: layout.windowX > 500 ? 120 : 820, y: layout.ropes[ropeIndex] - CAT.height, support: `rope-${ropeIndex}` };
+    playerRef.current = { x: start.x, y: start.y, vx: 0, vy: 0, grounded: true, support: start.support, facing: startsRight ? -1 : 1, invincibleUntil: performance.now() + 1100 };
     hazardsRef.current = [];
     warningRef.current = null;
   }, []);
@@ -112,7 +118,7 @@ export default function BlackCatGame({ onClose }: { onClose: () => void }) {
   const jump = useCallback(() => {
     const cat = playerRef.current;
     if (phaseRef.current === "playing" && cat.grounded) {
-      cat.vy = -11.1;
+      cat.vy = -8.8;
       cat.grounded = false;
       cat.support = "";
     }
@@ -181,17 +187,20 @@ export default function BlackCatGame({ onClose }: { onClose: () => void }) {
     nextThrowRef.current = performance.now() + 1700;
 
     const platformsAt = (time: number): Platform[] => {
-      const lowY = 285 + Math.sin(time / 720) * difficulty.ropeSway;
-      const highY = 188 + Math.sin(time / 820 + 1.4) * difficulty.ropeSway;
+      const bins: Platform[] = difficulty.bins.map((bin, index) => ({ id: `bin-${index}`, x: bin.x, y: bin.y, w: 75, kind: "bin" }));
+      const ropes: Platform[] = difficulty.ropes.map((baseY, index) => ({
+        id: `rope-${index}`,
+        x: 80,
+        y: baseY + Math.sin(time / (720 + index * 55) + index * .75) * difficulty.ropeSway,
+        w: 820,
+        kind: "rope",
+      }));
       return [
         { id: "ground", x: 0, y: 519, w: 1000, kind: "ground" },
-        { id: "bin-1", x: 115, y: 474, w: 75, kind: "bin" },
-        { id: "bin-2", x: 218, y: 440, w: 75, kind: "bin" },
-        { id: "bin-3", x: 324, y: 405, w: 75, kind: "bin" },
-        { id: "fence", x: 28, y: 370, w: 915, kind: "fence" },
-        { id: "rope-low", x: 80, y: lowY, w: 820, kind: "rope" },
-        { id: "rope-high", x: 80, y: highY, w: 820, kind: "rope" },
-        { id: "ledge", x: 700, y: 112, w: 180, kind: "ledge" },
+        ...bins,
+        { id: "fence", x: 28, y: difficulty.fenceY, w: 915, kind: "fence" },
+        ...ropes,
+        { id: "ledge", x: difficulty.windowX, y: difficulty.windowY, w: 160, kind: "ledge" },
       ];
     };
 
@@ -277,13 +286,18 @@ export default function BlackCatGame({ onClose }: { onClose: () => void }) {
       ctx.strokeStyle = "#a94b42"; ctx.lineWidth = 4; ctx.beginPath(); ctx.moveTo(10, -18); ctx.lineTo(37, -13); ctx.stroke(); ctx.restore();
     };
 
-    const drawWitch = (time: number) => {
+    const drawWitch = (time: number, ledge: Platform) => {
       const sprite = spritesRef.current.witch;
       if (!sprite) return;
       const bob = Math.sin(time / 420) * 2;
+      const glow = ctx.createRadialGradient(ledge.x + 80, ledge.y - 45, 5, ledge.x + 80, ledge.y - 45, 100);
+      glow.addColorStop(0, "#ffe27cbb"); glow.addColorStop(1, "#ffcf5000");
+      ctx.fillStyle = glow; ctx.fillRect(ledge.x - 30, ledge.y - 135, 220, 160);
+      ctx.fillStyle = "#28173e"; ctx.fillRect(ledge.x + 14, ledge.y - 104, 132, 104);
+      ctx.strokeStyle = "#e7b650"; ctx.lineWidth = 5; ctx.strokeRect(ledge.x + 14, ledge.y - 104, 132, 104);
       ctx.save();
-      ctx.beginPath(); ctx.rect(712, 20, 160, 96); ctx.clip();
-      ctx.drawImage(sprite, 722, 20 + bob, 142, 142);
+      ctx.beginPath(); ctx.rect(ledge.x + 17, ledge.y - 101, 126, 101); ctx.clip();
+      ctx.drawImage(sprite, ledge.x + 19, ledge.y - 104 + bob, 122, 122);
       ctx.restore();
     };
 
@@ -308,8 +322,7 @@ export default function BlackCatGame({ onClose }: { onClose: () => void }) {
       const fence = platforms.find((p) => p.kind === "fence")!;
       ctx.fillStyle = "#5d4050"; ctx.fillRect(fence.x, fence.y - 3, fence.w, 10);
       ctx.strokeStyle = "#c18d54"; ctx.lineWidth = 2; ctx.strokeRect(fence.x, fence.y - 3, fence.w, 10);
-      drawLaundry(platforms.find((p) => p.id === "rope-low")!.y, time, 0);
-      drawLaundry(platforms.find((p) => p.id === "rope-high")!.y, time, 1);
+      platforms.filter((p) => p.kind === "rope").forEach((rope, index) => drawLaundry(rope.y, time, index));
       const ledge = platforms.find((p) => p.kind === "ledge")!;
       ctx.fillStyle = "#6d3e55"; ctx.fillRect(ledge.x, ledge.y, ledge.w, 9);
       ctx.fillStyle = "#f0bd55"; ctx.fillRect(ledge.x, ledge.y, ledge.w, 3);
@@ -317,10 +330,7 @@ export default function BlackCatGame({ onClose }: { onClose: () => void }) {
       mice.forEach((mouse) => drawMouse(mouse.x, mouse.y, mouse.direction));
       drawDog(dogRef.current.x, dogRef.current.direction);
 
-      const windowGlow = ctx.createRadialGradient(795, 72, 5, 795, 72, 85);
-      windowGlow.addColorStop(0, "#ffe27c99"); windowGlow.addColorStop(1, "#ffcf5000");
-      ctx.fillStyle = windowGlow; ctx.fillRect(690, 0, 210, 155);
-      drawWitch(time);
+      drawWitch(time, ledge);
 
       if (warningRef.current) {
         drawResident(warningRef.current.x, warningRef.current.y, warningRef.current.resident, time);
@@ -357,14 +367,14 @@ export default function BlackCatGame({ onClose }: { onClose: () => void }) {
     const tick = (time: number) => {
       const dt = Math.min((time - last) / 16.67, 2); last = time;
       const platforms = platformsAt(time);
-      const lowRope = platforms.find((p) => p.id === "rope-low")!;
-      const highRope = platforms.find((p) => p.id === "rope-high")!;
-      const mice: MouseHazard[] = [
-        { x: 100 + ((time / difficulty.mouseDivisor) % 770), y: lowRope.y, direction: 1 },
-      ];
-      if (difficulty.mouseCount >= 2) mice.push({ x: 880 - ((time / (difficulty.mouseDivisor + 2)) % 770), y: highRope.y, direction: -1 });
-      if (difficulty.mouseCount >= 3) mice.push({ x: 880 - ((time / (difficulty.mouseDivisor + 1)) % 770), y: lowRope.y, direction: -1 });
-      if (difficulty.mouseCount >= 4) mice.push({ x: 100 + ((time / (difficulty.mouseDivisor + 3)) % 770), y: highRope.y, direction: 1 });
+      const ropePlatforms = platforms.filter((p) => p.kind === "rope");
+      const mice: MouseHazard[] = Array.from({ length: difficulty.mouseCount }, (_, index) => {
+        const ropeIndex = difficulty.mouseCount === 1 ? 0 : Math.round(index * (ropePlatforms.length - 1) / (difficulty.mouseCount - 1));
+        const rope = ropePlatforms[ropeIndex];
+        const direction = index % 2 === 0 ? 1 : -1;
+        const travel = (time / (difficulty.mouseDivisor + index)) % 770;
+        return { x: direction === 1 ? 100 + travel : 880 - travel, y: rope.y, direction };
+      });
 
       if (phaseRef.current === "playing") {
         const cat = playerRef.current;
@@ -382,7 +392,8 @@ export default function BlackCatGame({ onClose }: { onClose: () => void }) {
             const nextBottom = cat.y + CAT.height;
             if (previousBottom <= p.y + 5 && nextBottom >= p.y && cat.x + CAT.width - 6 > p.x && cat.x + 6 < p.x + p.w) {
               cat.y = p.y - CAT.height; cat.vy = 0; cat.grounded = true; cat.support = p.id;
-              const reached = p.id === "fence" ? 1 : p.id === "rope-low" ? 2 : p.id === "rope-high" ? 3 : checkpointRef.current;
+              const ropeIndex = p.kind === "rope" ? Number(p.id.split("-")[1]) : -1;
+              const reached = p.id === "fence" ? 1 : ropeIndex === 0 ? 2 : ropeIndex === difficulty.ropes.length - 1 ? 3 : checkpointRef.current;
               if (reached > checkpointRef.current) { checkpointRef.current = reached; setScore((value) => value + 25); }
               break;
             }
@@ -394,7 +405,12 @@ export default function BlackCatGame({ onClose }: { onClose: () => void }) {
         if (dogRef.current.x < 500) dogRef.current.direction = 1;
 
         if (time > nextThrowRef.current) {
-          const sources = [{ x: 335, y: 172, resident: 0 }, { x: 522, y: 270, resident: 1 }, { x: 650, y: 172, resident: 2 }];
+          const residentXs = difficulty.windowX > 500 ? [260, 455, 610] : [390, 610, 805];
+          const sources = [
+            { x: residentXs[0], y: Math.max(112, ropePlatforms[ropePlatforms.length - 1].y + 5), resident: 0 },
+            { x: residentXs[1], y: Math.max(145, ropePlatforms[Math.floor(ropePlatforms.length / 2)].y + 12), resident: 1 },
+            { x: residentXs[2], y: Math.min(330, ropePlatforms[0].y + 20), resident: 2 },
+          ];
           const source = sources[Math.floor(Math.random() * sources.length)];
           warningRef.current = { ...source, until: time + 720 };
           nextThrowRef.current = time + difficulty.throwMin + Math.random() * difficulty.throwRange;
@@ -412,7 +428,7 @@ export default function BlackCatGame({ onClose }: { onClose: () => void }) {
         if (vulnerable && mice.some((mouse) => circleHitsCat(mouse.x, mouse.y - 6, 16))) loseTurn();
         if (vulnerable && hazardsRef.current.some((item) => circleHitsCat(item.x, item.y, 11))) loseTurn();
         if (cat.y > WORLD.height + 25) loseTurn();
-        if (cat.x > 710 && cat.x < 865 && cat.y + CAT.height <= 118) { setScore((value) => value + 100); setPhase("won"); }
+        if (cat.x + CAT.width > difficulty.windowX && cat.x < difficulty.windowX + 160 && cat.y + CAT.height <= difficulty.windowY + 6) { setScore((value) => value + 100 + level * 25); setPhase("won"); }
       }
 
       draw(time, platforms, mice);
@@ -428,11 +444,13 @@ export default function BlackCatGame({ onClose }: { onClose: () => void }) {
   };
 
   const setDirection = (direction: "left" | "right", pressed: boolean) => { keysRef.current[direction] = pressed; };
-  const restart = () => { checkpointRef.current = 0; setLevel(1); setFalls(0); setHearts(3); setScore(0); resetCat(0); setPhase("playing"); };
+  const restart = () => { checkpointRef.current = 0; levelRef.current = 1; setLevel(1); setFalls(0); setHearts(3); setScore(0); resetCat(0); setPhase("playing"); };
   const continueJourney = () => {
     if (level >= LEVELS.length) { restart(); return; }
     checkpointRef.current = 0;
-    setLevel((value) => value + 1);
+    const nextLevel = level + 1;
+    levelRef.current = nextLevel;
+    setLevel(nextLevel);
     setHearts(3);
     resetCat(0);
     setPhase("playing");
@@ -466,7 +484,7 @@ export default function BlackCatGame({ onClose }: { onClose: () => void }) {
         <footer className="game-controls">
           <div className="keys-guide"><span><kbd>←</kbd><kbd>→</kbd> move</span><span><kbd>SPACE</kbd> jump</span><span><kbd>P</kbd> pause</span></div>
           <div className="touch-controls"><button onPointerDown={() => setDirection("left", true)} onPointerUp={() => setDirection("left", false)} onPointerLeave={() => setDirection("left", false)}>←</button><button onPointerDown={() => setDirection("right", true)} onPointerUp={() => setDirection("right", false)} onPointerLeave={() => setDirection("right", false)}>→</button><button onPointerDown={jump}>↑</button></div>
-          <p>Bins → fence → lower line → upper line → window</p>
+          <p>{LEVELS[level - 1].bins.length} bins → fence → {LEVELS[level - 1].ropes.length} lines → window</p>
         </footer>
       </section>
     </div>
