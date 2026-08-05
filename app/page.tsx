@@ -2,6 +2,7 @@
 
 import Image from "next/image";
 import { useEffect, useMemo, useState } from "react";
+import BlackCatGame from "./BlackCatGame";
 
 type Game = {
   id: string;
@@ -18,10 +19,10 @@ type Game = {
 const games: Game[] = [
   {
     id: "word-workshop",
-    title: "Word Workshop",
-    category: "Vocabulary",
-    level: "A1–A2",
-    description: "Collect useful words and match them with the right picture.",
+    title: "Midnight Return",
+    category: "Present Simple",
+    level: "A1",
+    description: "Help the black cat climb back to the witch's window.",
     image: "/assets/witch-workshop-v2.png",
     challenge: "Which word means «волшебный»?",
     answers: ["magical", "careful", "ordinary"],
@@ -117,7 +118,7 @@ export default function Home() {
             <small>READING · BEGINNER FRIENDLY</small>
             <h1 id="featured-title">The Dragon&apos;s<br />Library</h1>
             <p>Read the clues, find the hidden words,<br />and earn the young dragon&apos;s trust.</p>
-            <button onClick={() => openGame(games[0])}><span>⚔</span> Play adventure</button>
+            <button onClick={() => document.getElementById("games")?.scrollIntoView({ behavior: "smooth" })}><span>⚔</span> Explore games</button>
           </div>
           <div className="banner-dots" aria-hidden="true"><i /><i /><i /></div>
         </section>
@@ -158,7 +159,9 @@ export default function Home() {
         </section>
       </div>
 
-      {activeGame && (
+      {activeGame?.id === "word-workshop" && <BlackCatGame onClose={() => setActiveGame(null)} />}
+
+      {activeGame && activeGame.id !== "word-workshop" && (
         <div className="modal-layer" onMouseDown={() => setActiveGame(null)}>
           <section className="game-dialog" role="dialog" aria-modal="true" aria-labelledby="dialog-title" onMouseDown={(event) => event.stopPropagation()}>
             <div className="dialog-image"><Image src={activeGame.image} alt="" fill sizes="560px" /><button onClick={() => setActiveGame(null)} aria-label="Close">×</button></div>
