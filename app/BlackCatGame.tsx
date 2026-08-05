@@ -47,13 +47,14 @@ type Phase = "playing" | "quiz" | "won" | "paused";
 type Platform = { id: string; x: number; y: number; w: number; kind: "ground" | "stack" | "fence" | "rope" | "ledge" };
 type Projectile = { x: number; y: number; vx: number; vy: number; kind: number };
 type MouseHazard = { x: number; y: number; direction: number };
+type SceneWindow = { x: number; y: number; w: number; h: number; row: number; column: number };
 
 const LEVELS = [
-  { label: "1–1", stacks: [{ x: 120, height: 1 }, { x: 240, height: 2 }, { x: 360, height: 3 }], fenceY: 350, ropes: [290, 220], windowX: 735, windowY: 150, ropeSway: 3, dogSpeed: 1.3, mouseDivisor: 14, mouseCount: 1, throwMin: 3500, throwRange: 1700, projectileGravity: .1 },
-  { label: "1–2", stacks: [{ x: 720, height: 1 }, { x: 590, height: 2 }, { x: 455, height: 3 }], fenceY: 350, ropes: [300, 240, 180], windowX: 225, windowY: 120, ropeSway: 4, dogSpeed: 1.5, mouseDivisor: 12, mouseCount: 2, throwMin: 3100, throwRange: 1500, projectileGravity: .11 },
-  { label: "1–3", stacks: [{ x: 105, height: 1 }, { x: 270, height: 2 }, { x: 430, height: 3 }], fenceY: 350, ropes: [305, 255, 205, 155], windowX: 675, windowY: 105, ropeSway: 6, dogSpeed: 1.7, mouseDivisor: 10, mouseCount: 3, throwMin: 2600, throwRange: 1250, projectileGravity: .13 },
-  { label: "1–4", stacks: [{ x: 735, height: 1 }, { x: 610, height: 2 }, { x: 470, height: 3 }, { x: 320, height: 4 }], fenceY: 345, ropes: [305, 263, 221, 179, 137], windowX: 360, windowY: 90, ropeSway: 8, dogSpeed: 1.95, mouseDivisor: 9, mouseCount: 4, throwMin: 2200, throwRange: 1000, projectileGravity: .15 },
-  { label: "1–5", stacks: [{ x: 100, height: 1 }, { x: 255, height: 2 }, { x: 430, height: 3 }, { x: 610, height: 4 }], fenceY: 345, ropes: [305, 268, 231, 194, 157, 120], windowX: 730, windowY: 75, ropeSway: 10, dogSpeed: 2.25, mouseDivisor: 8, mouseCount: 5, throwMin: 1750, throwRange: 800, projectileGravity: .17 },
+  { label: "1–1", stacks: [{ x: 120, height: 1 }, { x: 240, height: 2 }, { x: 360, height: 3 }], fenceY: 350, ropes: [290, 220], floors: 2, windowX: 716, windowY: 150, windowW: 108, windowH: 88, windowTop: 62, targetColumn: 3, ropeSway: 3, dogSpeed: 1.3, mouseDivisor: 14, mouseCount: 1, throwMin: 3500, throwRange: 1700, projectileGravity: .1 },
+  { label: "1–2", stacks: [{ x: 720, height: 1 }, { x: 590, height: 2 }, { x: 455, height: 3 }], fenceY: 350, ropes: [300, 240, 180], floors: 3, windowX: 244, windowY: 120, windowW: 92, windowH: 76, windowTop: 44, targetColumn: 0, ropeSway: 4, dogSpeed: 1.5, mouseDivisor: 12, mouseCount: 2, throwMin: 3100, throwRange: 1500, projectileGravity: .11 },
+  { label: "1–3", stacks: [{ x: 105, height: 1 }, { x: 270, height: 2 }, { x: 430, height: 3 }], fenceY: 350, ropes: [305, 255, 205, 155], floors: 4, windowX: 569, windowY: 105, windowW: 82, windowH: 68, windowTop: 37, targetColumn: 2, ropeSway: 6, dogSpeed: 1.7, mouseDivisor: 10, mouseCount: 3, throwMin: 2600, throwRange: 1250, projectileGravity: .13 },
+  { label: "1–4", stacks: [{ x: 735, height: 1 }, { x: 610, height: 2 }, { x: 470, height: 3 }, { x: 320, height: 4 }], fenceY: 345, ropes: [305, 263, 221, 179, 137], floors: 5, windowX: 414, windowY: 90, windowW: 72, windowH: 60, windowTop: 30, targetColumn: 1, ropeSway: 8, dogSpeed: 1.95, mouseDivisor: 9, mouseCount: 4, throwMin: 2200, throwRange: 1000, projectileGravity: .15 },
+  { label: "1–5", stacks: [{ x: 100, height: 1 }, { x: 255, height: 2 }, { x: 430, height: 3 }, { x: 610, height: 4 }], fenceY: 345, ropes: [305, 268, 231, 194, 157, 120], floors: 6, windowX: 741, windowY: 75, windowW: 58, windowH: 48, windowTop: 27, targetColumn: 3, ropeSway: 10, dogSpeed: 2.25, mouseDivisor: 8, mouseCount: 5, throwMin: 1750, throwRange: 800, projectileGravity: .17 },
 ];
 
 export default function BlackCatGame({ onClose }: { onClose: () => void }) {
@@ -67,7 +68,7 @@ export default function BlackCatGame({ onClose }: { onClose: () => void }) {
   const checkpointRef = useRef(0);
   const hazardsRef = useRef<Projectile[]>([]);
   const nextThrowRef = useRef(2400);
-  const warningRef = useRef<{ x: number; y: number; until: number; resident: number } | null>(null);
+  const warningRef = useRef<(SceneWindow & { until: number; resident: number }) | null>(null);
   const startTimeRef = useRef(0);
   const dogRef = useRef({ x: 710, direction: 1 });
   const playerRef = useRef({ x: 48, y: 487, vx: 0, vy: 0, grounded: true, support: "ground", facing: 1, invincibleUntil: 0 });
@@ -129,7 +130,7 @@ export default function BlackCatGame({ onClose }: { onClose: () => void }) {
 
   useEffect(() => {
     const image = new Image();
-    image.src = "/assets/alley-library-yard-v2.png";
+    image.src = "/assets/library-facade-clean-v3.png";
     image.onload = () => { backgroundRef.current = image; };
 
     const keyImage = (sprite: HTMLImageElement) => {
@@ -204,7 +205,10 @@ export default function BlackCatGame({ onClose }: { onClose: () => void }) {
     loadSheet("mouse", "/assets/mouse-run-sheet-v2.png", [0, .333, .64, 1]);
     loadSprite("crate", "/assets/library-crate-source-v1.png", true);
     loadSprite("barrel", "/assets/library-barrel-source-v1.png", true);
-    loadSprite("witch", "/assets/witch-source-v2.png");
+    loadSprite("window-open", "/assets/library-window-open-source-v1.png", true);
+    loadSprite("fence-rail", "/assets/library-fence-rail-source-v1.png", true);
+    loadSheet("laundry", "/assets/library-laundry-line-source-v1.png", [0, .235, .36, .5, .65, .79, 1]);
+    loadSprite("witch", "/assets/witch-source-v2.png", true);
     loadSprite("residents", "/assets/residents-source-v2.png");
   }, []);
 
@@ -248,8 +252,26 @@ export default function BlackCatGame({ onClose }: { onClose: () => void }) {
         ...stacks,
         { id: "fence", x: 28, y: difficulty.fenceY, w: 915, kind: "fence" },
         ...ropes,
-        { id: "ledge", x: difficulty.windowX, y: difficulty.windowY, w: 160, kind: "ledge" },
+        { id: "ledge", x: difficulty.windowX, y: difficulty.windowY, w: difficulty.windowW, kind: "ledge" },
       ];
+    };
+
+    const windowsForLevel = (): SceneWindow[] => {
+      const centers = [290, 450, 610, 770];
+      const lastTop = difficulty.fenceY - difficulty.windowH - 18;
+      return Array.from({ length: difficulty.floors }, (_, row) => {
+        const y = difficulty.floors === 1
+          ? difficulty.windowTop
+          : difficulty.windowTop + (lastTop - difficulty.windowTop) * row / (difficulty.floors - 1);
+        return centers.map((center, column) => ({
+          x: center - difficulty.windowW / 2,
+          y,
+          w: difficulty.windowW,
+          h: difficulty.windowH,
+          row,
+          column,
+        }));
+      }).flat();
     };
 
     const circleHitsCat = (x: number, y: number, radius: number) => {
@@ -303,15 +325,20 @@ export default function BlackCatGame({ onClose }: { onClose: () => void }) {
     };
 
     const drawLaundry = (y: number, time: number, row: number) => {
-      ctx.strokeStyle = "#c9ae7a"; ctx.lineWidth = 3; ctx.beginPath(); ctx.moveTo(80, y); ctx.quadraticCurveTo(490, y + 10, 900, y); ctx.stroke();
-      const colors = ["#d5b4ce", "#8da6c5", "#7b518e", "#d9cfad", "#5a85a4"];
-      for (let i = 0; i < 7; i += 1) {
-        const base = 115 + i * 112;
-        const x = base + Math.sin(time / 900 + i * .8 + row) * 17;
-        const w = i % 3 === 0 ? 54 : 40;
-        ctx.fillStyle = colors[(i + row) % colors.length];
-        ctx.fillRect(x, y + 5, w, 28 + (i % 2) * 11);
-        ctx.fillStyle = "#e8c46b"; ctx.fillRect(x + 5, y - 2, 4, 7); ctx.fillRect(x + w - 9, y - 2, 4, 7);
+      const sag = 7 + Math.sin(time / 1100 + row) * 2;
+      ctx.strokeStyle = "#35243a"; ctx.lineWidth = 6; ctx.beginPath(); ctx.moveTo(78, y); ctx.quadraticCurveTo(490, y + sag, 902, y); ctx.stroke();
+      ctx.strokeStyle = "#c49b66"; ctx.lineWidth = 2.4; ctx.beginPath(); ctx.moveTo(78, y - 1); ctx.quadraticCurveTo(490, y + sag - 1, 902, y - 1); ctx.stroke();
+      const lowerLine = row === 0 ? difficulty.fenceY : difficulty.ropes[row - 1];
+      const available = Math.max(28, lowerLine - difficulty.ropes[row] - 8);
+      const garmentHeight = Math.min(55, available * .82);
+      for (let i = 0; i < 4; i += 1) {
+        const sprite = spritesRef.current[`laundry-${(row * 2 + i) % 6}`];
+        if (!sprite) continue;
+        const height = garmentHeight * (i % 2 === 0 ? 1 : .86);
+        const width = height * sprite.width / sprite.height;
+        const center = 170 + i * 210 + Math.sin(time / 850 + i + row) * 7;
+        const top = y - height * .12 + Math.sin(time / 720 + i * .9) * 1.5;
+        ctx.drawImage(sprite, center - width / 2, top, width, height);
       }
     };
 
@@ -353,30 +380,56 @@ export default function BlackCatGame({ onClose }: { onClose: () => void }) {
       ctx.strokeStyle = "#a94b42"; ctx.lineWidth = 4; ctx.beginPath(); ctx.moveTo(10, -18); ctx.lineTo(37, -13); ctx.stroke(); ctx.restore();
     };
 
-    const drawWitch = (time: number, ledge: Platform) => {
+    const innerWindow = (slot: SceneWindow) => ({ x: slot.x + slot.w * .29, y: slot.y + slot.h * .17, w: slot.w * .42, h: slot.h * .68 });
+
+    const drawClosedWindow = (slot: SceneWindow) => {
+      const radius = Math.max(4, slot.w * .15);
+      ctx.fillStyle = "#766080"; ctx.beginPath(); ctx.roundRect(slot.x + slot.w * .25, slot.y + slot.h * .05, slot.w * .5, slot.h * .91, radius); ctx.fill();
+      ctx.fillStyle = "#17142d"; ctx.beginPath(); ctx.roundRect(slot.x + slot.w * .29, slot.y + slot.h * .11, slot.w * .42, slot.h * .76, radius * .7); ctx.fill();
+      const inner = innerWindow(slot);
+      const gap = Math.max(1, slot.w * .018);
+      ctx.fillStyle = "#30224d"; ctx.fillRect(inner.x, inner.y, inner.w / 2 - gap, inner.h);
+      ctx.fillStyle = "#3d2858"; ctx.fillRect(inner.x + inner.w / 2 + gap, inner.y, inner.w / 2 - gap, inner.h);
+      ctx.strokeStyle = "#9b795d"; ctx.lineWidth = Math.max(1, slot.w * .018); ctx.strokeRect(inner.x, inner.y, inner.w, inner.h);
+      ctx.strokeStyle = "#b38a56"; ctx.beginPath(); ctx.moveTo(slot.x + slot.w * .22, slot.y + slot.h * .9); ctx.lineTo(slot.x + slot.w * .78, slot.y + slot.h * .9); ctx.stroke();
+    };
+
+    const drawOpenWindow = (slot: SceneWindow) => {
+      const frame = spritesRef.current["window-open"];
+      if (frame) ctx.drawImage(frame, slot.x, slot.y, slot.w, slot.h);
+      else {
+        ctx.fillStyle = "#090d20"; ctx.fillRect(slot.x + slot.w * .25, slot.y + slot.h * .12, slot.w * .5, slot.h * .78);
+        ctx.strokeStyle = "#725378"; ctx.lineWidth = 3; ctx.strokeRect(slot.x + slot.w * .22, slot.y + slot.h * .08, slot.w * .56, slot.h * .84);
+      }
+    };
+
+    const drawWitch = (time: number, slot: SceneWindow) => {
       const sprite = spritesRef.current.witch;
+      const centerX = slot.x + slot.w / 2;
+      const centerY = slot.y + slot.h / 2;
+      const glow = ctx.createRadialGradient(centerX, centerY, 3, centerX, centerY, slot.w * .9);
+      glow.addColorStop(0, "#ffe27ca8"); glow.addColorStop(1, "#ffcf5000");
+      ctx.fillStyle = glow; ctx.fillRect(slot.x - slot.w * .45, slot.y - slot.h * .45, slot.w * 1.9, slot.h * 1.9);
+      drawOpenWindow(slot);
       if (!sprite) return;
-      const bob = Math.sin(time / 420) * 2;
-      const glow = ctx.createRadialGradient(ledge.x + 80, ledge.y - 45, 5, ledge.x + 80, ledge.y - 45, 100);
-      glow.addColorStop(0, "#ffe27cbb"); glow.addColorStop(1, "#ffcf5000");
-      ctx.fillStyle = glow; ctx.fillRect(ledge.x - 30, ledge.y - 135, 220, 160);
-      ctx.fillStyle = "#28173e"; ctx.fillRect(ledge.x + 14, ledge.y - 104, 132, 104);
-      ctx.strokeStyle = "#e7b650"; ctx.lineWidth = 5; ctx.strokeRect(ledge.x + 14, ledge.y - 104, 132, 104);
-      ctx.save();
-      ctx.beginPath(); ctx.rect(ledge.x + 17, ledge.y - 101, 126, 101); ctx.clip();
-      ctx.drawImage(sprite, ledge.x + 19, ledge.y - 104 + bob, 122, 122);
+      const inner = innerWindow(slot);
+      const bob = Math.sin(time / 420) * Math.max(1, slot.h * .018);
+      const height = inner.h * 1.05;
+      const width = height * sprite.width / sprite.height;
+      ctx.save(); ctx.beginPath(); ctx.rect(inner.x, inner.y, inner.w, inner.h); ctx.clip();
+      ctx.drawImage(sprite, inner.x + inner.w / 2 - width / 2, inner.y + inner.h - height + bob, width, height);
       ctx.restore();
     };
 
-    const drawResident = (x: number, y: number, resident: number, time: number) => {
+    const drawResident = (slot: SceneWindow, resident: number, time: number) => {
       const sprite = spritesRef.current.residents;
+      drawOpenWindow(slot);
       if (!sprite) return;
       const cellWidth = sprite.width / 3;
-      const rise = Math.sin(time / 180) * 2;
-      ctx.fillStyle = "#090d20"; ctx.fillRect(x - 47, y - 73, 94, 74);
-      ctx.strokeStyle = "#725378"; ctx.lineWidth = 4; ctx.strokeRect(x - 47, y - 73, 94, 74);
-      ctx.save(); ctx.beginPath(); ctx.rect(x - 45, y - 71, 90, 72); ctx.clip();
-      ctx.drawImage(sprite, resident * cellWidth, 0, cellWidth, sprite.height, x - 43, y - 72 + rise, 86, 86);
+      const inner = innerWindow(slot);
+      const rise = Math.sin(time / 180) * Math.max(.5, slot.h * .018);
+      ctx.save(); ctx.beginPath(); ctx.rect(inner.x, inner.y, inner.w, inner.h); ctx.clip();
+      ctx.drawImage(sprite, resident * cellWidth, 0, cellWidth, sprite.height, inner.x - inner.w * .1, inner.y - inner.h * .03 + rise, inner.w * 1.2, inner.h * 1.22);
       ctx.restore();
     };
 
@@ -385,25 +438,53 @@ export default function BlackCatGame({ onClose }: { onClose: () => void }) {
       else { ctx.fillStyle = "#091a3a"; ctx.fillRect(0, 0, WORLD.width, WORLD.height); }
       ctx.fillStyle = "#030a1825"; ctx.fillRect(0, 0, WORLD.width, WORLD.height);
 
-      platforms.filter((p) => p.kind === "stack").forEach(drawStack);
       const fence = platforms.find((p) => p.kind === "fence")!;
-      ctx.fillStyle = "#5d4050"; ctx.fillRect(fence.x, fence.y - 3, fence.w, 10);
-      ctx.strokeStyle = "#c18d54"; ctx.lineWidth = 2; ctx.strokeRect(fence.x, fence.y - 3, fence.w, 10);
-      platforms.filter((p) => p.kind === "rope").forEach((rope, index) => drawLaundry(rope.y, time, index));
       const ledge = platforms.find((p) => p.kind === "ledge")!;
-      ctx.fillStyle = "#6d3e55"; ctx.fillRect(ledge.x, ledge.y, ledge.w, 9);
-      ctx.fillStyle = "#f0bd55"; ctx.fillRect(ledge.x, ledge.y, ledge.w, 3);
+      const windows = windowsForLevel();
+      const targetWindow = windows.find((slot) => slot.row === 0 && slot.column === difficulty.targetColumn)!;
+      const rowTops = windows.filter((slot) => slot.column === 0).map((slot) => slot.y);
+      for (let row = 0; row < rowTops.length - 1; row += 1) {
+        const bandY = (rowTops[row] + difficulty.windowH + rowTops[row + 1]) / 2;
+        const band = ctx.createLinearGradient(185, bandY, 895, bandY);
+        band.addColorStop(0, "#51415a00"); band.addColorStop(.15, "#66506caa"); band.addColorStop(.85, "#66506caa"); band.addColorStop(1, "#51415a00");
+        ctx.fillStyle = band; ctx.fillRect(185, bandY, 710, Math.max(2, 5 - level * .45));
+      }
+      windows.forEach((slot) => {
+        const isTarget = slot.row === 0 && slot.column === difficulty.targetColumn;
+        const isActive = warningRef.current && slot.row === warningRef.current.row && slot.column === warningRef.current.column;
+        if (!isTarget && !isActive) drawClosedWindow(slot);
+      });
+      drawWitch(time, targetWindow);
+      if (warningRef.current) drawResident(warningRef.current, warningRef.current.resident, time);
+
+      ctx.fillStyle = "#241b36";
+      for (let x = fence.x + 5, index = 0; x < fence.x + fence.w - 24; x += 31, index += 1) {
+        ctx.fillStyle = index % 3 === 0 ? "#302343" : index % 3 === 1 ? "#292039" : "#352541";
+        ctx.beginPath(); ctx.moveTo(x, fence.y + 13); ctx.lineTo(x + 13, fence.y + 3); ctx.lineTo(x + 26, fence.y + 13); ctx.lineTo(x + 26, GROUND_Y); ctx.lineTo(x, GROUND_Y); ctx.closePath(); ctx.fill();
+        ctx.strokeStyle = "#5d4663"; ctx.lineWidth = 1; ctx.stroke();
+      }
+      const fenceSprite = spritesRef.current["fence-rail"];
+      if (fenceSprite) {
+        const railHeight = fence.w * fenceSprite.height / fenceSprite.width;
+        ctx.drawImage(fenceSprite, fence.x, fence.y - 2, fence.w, railHeight);
+      } else {
+        ctx.fillStyle = "#4a3155"; ctx.fillRect(fence.x, fence.y, fence.w, 18);
+        ctx.strokeStyle = "#b18458"; ctx.lineWidth = 2; ctx.strokeRect(fence.x, fence.y, fence.w, 18);
+      }
+
+      platforms.filter((p) => p.kind === "stack").forEach(drawStack);
+      platforms.filter((p) => p.kind === "rope").forEach((rope, index) => drawLaundry(rope.y, time, index));
+      ctx.fillStyle = "#c09b73"; ctx.fillRect(ledge.x + ledge.w * .27, ledge.y - 2, ledge.w * .46, 3);
 
       mice.forEach((mouse) => drawMouse(mouse.x, mouse.y, mouse.direction, time));
       drawDog(dogRef.current.x, dogRef.current.direction, time);
 
-      drawWitch(time, ledge);
-
       if (warningRef.current) {
-        drawResident(warningRef.current.x, warningRef.current.y, warningRef.current.resident, time);
-        const pulse = 11 + Math.sin(time / 65) * 4;
-        ctx.strokeStyle = "#ffda66"; ctx.lineWidth = 3; ctx.beginPath(); ctx.arc(warningRef.current.x, warningRef.current.y, pulse, 0, Math.PI * 2); ctx.stroke();
-        ctx.fillStyle = "#fff0a8"; ctx.font = "bold 16px Arial"; ctx.fillText("!", warningRef.current.x - 3, warningRef.current.y + 5);
+        const centerX = warningRef.current.x + warningRef.current.w / 2;
+        const centerY = warningRef.current.y + warningRef.current.h / 2;
+        const pulse = warningRef.current.w * .24 + Math.sin(time / 65) * 3;
+        ctx.strokeStyle = "#ffda66"; ctx.lineWidth = 3; ctx.beginPath(); ctx.arc(centerX, centerY, pulse, 0, Math.PI * 2); ctx.stroke();
+        ctx.fillStyle = "#fff0a8"; ctx.font = `bold ${Math.max(11, warningRef.current.w * .15)}px Arial`; ctx.fillText("!", centerX - 3, centerY + 5);
       }
       hazardsRef.current.forEach((item) => {
         ctx.save(); ctx.translate(item.x, item.y); ctx.rotate(time / 220);
@@ -473,19 +554,14 @@ export default function BlackCatGame({ onClose }: { onClose: () => void }) {
         if (dogRef.current.x < 72) { dogRef.current.x = 72; dogRef.current.direction = 1; }
 
         if (time > nextThrowRef.current) {
-          const residentXs = difficulty.windowX > 500 ? [260, 455, 610] : [390, 610, 805];
-          const sources = [
-            { x: residentXs[0], y: Math.max(112, ropePlatforms[ropePlatforms.length - 1].y + 5), resident: 0 },
-            { x: residentXs[1], y: Math.max(145, ropePlatforms[Math.floor(ropePlatforms.length / 2)].y + 12), resident: 1 },
-            { x: residentXs[2], y: Math.min(330, ropePlatforms[0].y + 20), resident: 2 },
-          ];
-          const source = sources[Math.floor(Math.random() * sources.length)];
-          warningRef.current = { ...source, until: time + 720 };
+          const neighborWindows = windowsForLevel().filter((slot) => !(slot.row === 0 && slot.column === difficulty.targetColumn));
+          const source = neighborWindows[Math.floor(Math.random() * neighborWindows.length)];
+          warningRef.current = { ...source, resident: Math.floor(Math.random() * 3), until: time + 720 };
           nextThrowRef.current = time + difficulty.throwMin + Math.random() * difficulty.throwRange;
         }
         if (warningRef.current && time > warningRef.current.until) {
           const warning = warningRef.current;
-          hazardsRef.current.push({ x: warning.x, y: warning.y, vx: (Math.random() - .5) * 2.2, vy: .8, kind: Math.floor(Math.random() * 3) });
+          hazardsRef.current.push({ x: warning.x + warning.w / 2, y: warning.y + warning.h * .72, vx: (Math.random() - .5) * 2.2, vy: .8, kind: Math.floor(Math.random() * 3) });
           warningRef.current = null;
         }
         hazardsRef.current.forEach((item) => { item.x += item.vx * dt; item.vy += difficulty.projectileGravity * dt; item.y += item.vy * dt; });
@@ -496,7 +572,7 @@ export default function BlackCatGame({ onClose }: { onClose: () => void }) {
         if (vulnerable && mice.some((mouse) => circleHitsCat(mouse.x, mouse.y - 6, 16))) loseTurn();
         if (vulnerable && hazardsRef.current.some((item) => circleHitsCat(item.x, item.y, 11))) loseTurn();
         if (cat.y > WORLD.height + 25) loseTurn();
-        if (cat.x + CAT.width > difficulty.windowX && cat.x < difficulty.windowX + 160 && cat.y + CAT.height <= difficulty.windowY + 6) { setScore((value) => value + 100 + level * 25); setPhase("won"); }
+        if (cat.x + CAT.width > difficulty.windowX && cat.x < difficulty.windowX + difficulty.windowW && cat.y + CAT.height <= difficulty.windowY + 6) { setScore((value) => value + 100 + level * 25); setPhase("won"); }
       }
 
       draw(time, platforms, mice);
