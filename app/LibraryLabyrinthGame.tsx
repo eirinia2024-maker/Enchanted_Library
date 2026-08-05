@@ -429,6 +429,7 @@ export default function LibraryLabyrinthGame({ onClose }: Props) {
               <span className="scroll-kicker">СОКРОВИЩНИЦА ОТКРЫТА</span>
               <h2>Знание стало ключом!</h2>
               <p>Ты прошёл лабиринт и ответил правильно на <strong>{correctAnswers}</strong> вопросов.</p>
+              <div className="dragon-secret"><span>DRAGON&apos;S SECRET</span><strong>The word that opens the oldest library door is starlight.</strong></div>
               <div>
                 <button onClick={resetGame}>Пройти ещё раз</button>
                 <button onClick={onClose}>Вернуться в библиотеку</button>

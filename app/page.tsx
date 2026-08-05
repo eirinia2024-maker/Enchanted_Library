@@ -5,6 +5,7 @@ import { useEffect, useMemo, useState } from "react";
 import AlchemyWordGame from "./AlchemyWordGame";
 import BlackCatGame from "./BlackCatGame";
 import LibraryLabyrinthGame from "./LibraryLabyrinthGame";
+import DragonLibraryGate from "./DragonLibraryGate";
 
 type Game = {
   id: string;
@@ -58,6 +59,7 @@ export default function Home() {
   const [search, setSearch] = useState("");
   const [activeGame, setActiveGame] = useState<Game | null>(null);
   const [answer, setAnswer] = useState<string | null>(null);
+  const [showDragonGate, setShowDragonGate] = useState(false);
 
   const visibleGames = useMemo(() => {
     const query = search.trim().toLowerCase();
@@ -83,6 +85,11 @@ export default function Home() {
   function openGame(game: Game) {
     setAnswer(null);
     setActiveGame(game);
+  }
+
+  function enterLibrary() {
+    setShowDragonGate(false);
+    window.setTimeout(() => document.getElementById("games")?.scrollIntoView({ behavior: "smooth" }), 80);
   }
 
   return (
@@ -120,7 +127,7 @@ export default function Home() {
             <small>READING · BEGINNER FRIENDLY</small>
             <h1 id="featured-title">The Dragon&apos;s<br />Library</h1>
             <p>Read the clues, find the hidden words,<br />and earn the young dragon&apos;s trust.</p>
-            <button onClick={() => document.getElementById("games")?.scrollIntoView({ behavior: "smooth" })}><span>⚔</span> Explore games</button>
+            <button onClick={() => setShowDragonGate(true)}><span>⚔</span> Explore games</button>
           </div>
           <div className="banner-dots" aria-hidden="true"><i /><i /><i /></div>
         </section>
@@ -163,6 +170,7 @@ export default function Home() {
       {activeGame?.id === "word-workshop" && <BlackCatGame onClose={() => setActiveGame(null)} />}
       {activeGame?.id === "spellbound-scrolls" && <AlchemyWordGame onClose={() => setActiveGame(null)} />}
       {activeGame?.id === "library-labyrinth" && <LibraryLabyrinthGame onClose={() => setActiveGame(null)} />}
+      {showDragonGate && <DragonLibraryGate onClose={() => setShowDragonGate(false)} onFinish={enterLibrary} />}
 
       {activeGame && !["word-workshop", "spellbound-scrolls", "library-labyrinth"].includes(activeGame.id) && (
         <div className="modal-layer" onMouseDown={() => setActiveGame(null)}>
