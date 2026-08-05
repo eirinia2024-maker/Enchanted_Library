@@ -651,7 +651,34 @@ export default function BlackCatGame({ onClose }: { onClose: () => void }) {
               {selected && selected !== QUESTIONS[questionIndex].correct && <small>Not quite. Look at the subject and try again.</small>}
             </div>
           )}
-          {phase === "won" && level < LEVELS.length && <div className="win-screen"><span>★</span><h3>{`Level ${LEVELS[level - 1].label} complete!`}</h3><p>The next courtyard is faster and more dangerous.</p><button onClick={continueJourney}>Next level</button></div>}
+          {phase === "won" && level < LEVELS.length && (
+            <div className="level-complete-screen">
+              {!showLevelSelect ? (
+                <div className="level-complete-copy">
+                  <span className="level-complete-star" aria-hidden="true">★</span>
+                  <h3>{`Level ${LEVELS[level - 1].label} complete!`}</h3>
+                  <p>The next courtyard is faster and more dangerous.</p>
+                  <button className="next-level-button" onClick={continueJourney}>Next level</button>
+                  <button className="back-to-map-button" onClick={() => setShowLevelSelect(true)}>Back to map</button>
+                </div>
+              ) : (
+                <div className="level-map-panel">
+                  <span>MIDNIGHT ROUTE</span>
+                  <h3>Choose a courtyard</h3>
+                  <p>Replay a courtyard or continue with the next one.</p>
+                  <div className="level-map-nodes">
+                    {LEVELS.map((item, index) => (
+                      <button className={index + 1 === level ? "current" : ""} key={item.label} onClick={() => startLevel(index + 1)}>
+                        <i>{index + 1 <= level ? "★" : "•"}</i>
+                        <strong>{item.label}</strong>
+                      </button>
+                    ))}
+                  </div>
+                  <button className="map-back-button" onClick={() => setShowLevelSelect(false)}>← Back to result</button>
+                </div>
+              )}
+            </div>
+          )}
           {phase === "won" && level === LEVELS.length && (
             <div className="final-win-screen">
               {!showLevelSelect ? (
