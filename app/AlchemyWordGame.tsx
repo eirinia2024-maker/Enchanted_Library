@@ -230,7 +230,7 @@ export default function AlchemyWordGame({ onClose }: { onClose: () => void }) {
               <>
                 <div className="alchemy-scroll-copy">
                   <small>ПЕРЕВЕДИ НА АНГЛИЙСКИЙ</small>
-                  <strong>{currentWord.ru}</strong>
+                  <strong className={currentWord.ru.length >= 12 ? "very-long" : currentWord.ru.length >= 9 ? "long" : ""}>{currentWord.ru}</strong>
                   <span>{currentWord.en.length} букв</span>
                 </div>
 
