@@ -127,7 +127,7 @@ export default function Home() {
             <small>READING · BEGINNER FRIENDLY</small>
             <h1 id="featured-title">The Dragon&apos;s<br />Library</h1>
             <p>Read the clues, find the hidden words,<br />and earn the young dragon&apos;s trust.</p>
-            <button onClick={() => setShowDragonGate(true)}><span>⚔</span> Explore games</button>
+            <button onClick={() => setShowDragonGate(true)}><span>⚔</span> Answer the questions</button>
           </div>
           <div className="banner-dots" aria-hidden="true"><i /><i /><i /></div>
         </section>
