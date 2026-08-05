@@ -25,7 +25,7 @@ const games: Game[] = [
     category: "Present Simple",
     level: "A1",
     description: "Climb the bins, dodge the bulldog and return to the witch's window.",
-    image: "/assets/alley-library-yard-v2.png",
+    image: "/assets/midnight-return-cover-v1.png",
     challenge: "Which word means «волшебный»?",
     answers: ["magical", "careful", "ordinary"],
     correct: "magical",
@@ -36,7 +36,7 @@ const games: Game[] = [
     category: "YLE Movers Vocabulary",
     level: "A1",
     description: "Смешивай буквы-ингредиенты и вари английские слова в лаборатории алхимика.",
-    image: "/assets/alchemist-word-lab-v1.png",
+    image: "/assets/word-potion-cover-v1.png",
     challenge: "Собери английское слово из ингредиентов.",
     answers: [],
     correct: "",
@@ -135,11 +135,10 @@ export default function Home() {
           </div>
 
           <div className="cards">
-            {visibleGames.map((game, index) => (
+            {visibleGames.map((game) => (
               <article className="game-card" key={game.id}>
                 <button className="cover" onClick={() => openGame(game)} aria-label={`Open ${game.title}`}>
                   <Image src={game.image} alt="" fill sizes="(max-width: 700px) 100vw, 390px" />
-                  <span className="number">0{index + 1}</span>
                   <span className="cover-play">▶</span>
                 </button>
                 <div className="game-info">
