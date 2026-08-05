@@ -4,6 +4,7 @@ import Image from "next/image";
 import { useEffect, useMemo, useState } from "react";
 import AlchemyWordGame from "./AlchemyWordGame";
 import BlackCatGame from "./BlackCatGame";
+import LibraryLabyrinthGame from "./LibraryLabyrinthGame";
 
 type Game = {
   id: string;
@@ -41,15 +42,15 @@ const games: Game[] = [
     correct: "",
   },
   {
-    id: "story-path",
-    title: "Story Path",
-    category: "Grammar",
-    level: "B1–B2",
-    description: "Choose the right phrase and guide the heroes to the castle.",
-    image: "/assets/story-path-v2.png",
-    challenge: "If we had a map, we ___ the castle faster.",
-    answers: ["would find", "will found", "find"],
-    correct: "would find",
+    id: "library-labyrinth",
+    title: "Library Labyrinth",
+    category: "Grammar Maze",
+    level: "A1–A2",
+    description: "Answer grammar questions, explore changing routes and find the hidden treasure room.",
+    image: "/assets/library-labyrinth-cover-v1.png",
+    challenge: "Knowledge is the key.",
+    answers: [],
+    correct: "",
   },
 ];
 
@@ -162,8 +163,9 @@ export default function Home() {
 
       {activeGame?.id === "word-workshop" && <BlackCatGame onClose={() => setActiveGame(null)} />}
       {activeGame?.id === "spellbound-scrolls" && <AlchemyWordGame onClose={() => setActiveGame(null)} />}
+      {activeGame?.id === "library-labyrinth" && <LibraryLabyrinthGame onClose={() => setActiveGame(null)} />}
 
-      {activeGame && !["word-workshop", "spellbound-scrolls"].includes(activeGame.id) && (
+      {activeGame && !["word-workshop", "spellbound-scrolls", "library-labyrinth"].includes(activeGame.id) && (
         <div className="modal-layer" onMouseDown={() => setActiveGame(null)}>
           <section className="game-dialog" role="dialog" aria-modal="true" aria-labelledby="dialog-title" onMouseDown={(event) => event.stopPropagation()}>
             <div className="dialog-image"><Image src={activeGame.image} alt="" fill sizes="560px" /><button onClick={() => setActiveGame(null)} aria-label="Close">×</button></div>
