@@ -2,6 +2,7 @@
 
 import Image from "next/image";
 import { useEffect, useMemo, useState } from "react";
+import AlchemyWordGame from "./AlchemyWordGame";
 import BlackCatGame from "./BlackCatGame";
 
 type Game = {
@@ -30,14 +31,14 @@ const games: Game[] = [
   },
   {
     id: "spellbound-scrolls",
-    title: "Spellbound Scrolls",
-    category: "Spelling",
-    level: "A2–B1",
-    description: "Help the owl restore words hidden in enchanted scrolls.",
-    image: "/assets/owl-scrolls-v2.png",
-    challenge: "Put the letters in order:  R A B R I L Y",
-    answers: ["library", "bravely", "brilliant"],
-    correct: "library",
+    title: "Собери слово",
+    category: "YLE Movers Vocabulary",
+    level: "A1",
+    description: "Смешивай буквы-ингредиенты и вари английские слова в лаборатории алхимика.",
+    image: "/assets/alchemist-word-lab-v1.png",
+    challenge: "Собери английское слово из ингредиентов.",
+    answers: [],
+    correct: "",
   },
   {
     id: "story-path",
@@ -160,8 +161,9 @@ export default function Home() {
       </div>
 
       {activeGame?.id === "word-workshop" && <BlackCatGame onClose={() => setActiveGame(null)} />}
+      {activeGame?.id === "spellbound-scrolls" && <AlchemyWordGame onClose={() => setActiveGame(null)} />}
 
-      {activeGame && activeGame.id !== "word-workshop" && (
+      {activeGame && !["word-workshop", "spellbound-scrolls"].includes(activeGame.id) && (
         <div className="modal-layer" onMouseDown={() => setActiveGame(null)}>
           <section className="game-dialog" role="dialog" aria-modal="true" aria-labelledby="dialog-title" onMouseDown={(event) => event.stopPropagation()}>
             <div className="dialog-image"><Image src={activeGame.image} alt="" fill sizes="560px" /><button onClick={() => setActiveGame(null)} aria-label="Close">×</button></div>
