@@ -137,7 +137,7 @@ export default function Home() {
           <div className="cards">
             {visibleGames.map((game) => (
               <article className="game-card" key={game.id}>
-                <button className="cover" onClick={() => openGame(game)} aria-label={`Open ${game.title}`}>
+                <button className={`cover ${game.id === "library-labyrinth" ? "cover-labyrinth" : ""}`} onClick={() => openGame(game)} aria-label={`Open ${game.title}`}>
                   <Image src={game.image} alt="" fill sizes="(max-width: 700px) 100vw, 390px" />
                   <span className="cover-play">▶</span>
                 </button>
