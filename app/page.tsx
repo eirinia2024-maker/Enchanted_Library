@@ -34,10 +34,10 @@ const games: Game[] = [
   },
   {
     id: "spellbound-scrolls",
-    title: "Собери слово",
+    title: "Words Potion",
     category: "YLE Movers Vocabulary",
     level: "A1",
-    description: "Смешивай буквы-ингредиенты и вари английские слова в лаборатории алхимика.",
+    description: "Mix letter ingredients and brew English words in the alchemist's laboratory.",
     image: assetPath("/assets/word-potion-cover-v1.png"),
     challenge: "Собери английское слово из ингредиентов.",
     answers: [],
