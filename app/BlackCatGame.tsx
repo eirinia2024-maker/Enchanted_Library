@@ -40,6 +40,15 @@ const QUESTIONS: Question[] = [
   { prompt: "These books ___ on the top shelf.", options: ["belong", "belongs", "belonging"], correct: "belong" },
 ];
 
+function shuffle<T>(items: readonly T[]): T[] {
+  const shuffled = [...items];
+  for (let index = shuffled.length - 1; index > 0; index -= 1) {
+    const swapIndex = Math.floor(Math.random() * (index + 1));
+    [shuffled[index], shuffled[swapIndex]] = [shuffled[swapIndex], shuffled[index]];
+  }
+  return shuffled;
+}
+
 const WORLD = { width: 1000, height: 560 };
 const CAT = { width: 38, height: 32 };
 const GROUND_Y = 519;
@@ -81,6 +90,7 @@ export default function BlackCatGame({ onClose }: { onClose: () => void }) {
   const questionBag = useRef<number[]>([]);
   const [phase, setPhaseState] = useState<Phase>("playing");
   const [questionIndex, setQuestionIndex] = useState(0);
+  const [questionOptions, setQuestionOptions] = useState<string[]>(() => [...QUESTIONS[0].options]);
   const [selected, setSelected] = useState<string | null>(null);
   const [falls, setFalls] = useState(0);
   const [hearts, setHearts] = useState(3);
@@ -108,8 +118,10 @@ export default function BlackCatGame({ onClose }: { onClose: () => void }) {
   };
 
   const nextQuestion = useCallback(() => {
-    if (questionBag.current.length === 0) questionBag.current = QUESTIONS.map((_, i) => i).sort(() => Math.random() - 0.5);
-    setQuestionIndex(questionBag.current.pop() ?? 0);
+    if (questionBag.current.length === 0) questionBag.current = shuffle(QUESTIONS.map((_, index) => index));
+    const nextIndex = questionBag.current.pop() ?? 0;
+    setQuestionIndex(nextIndex);
+    setQuestionOptions(shuffle(QUESTIONS[nextIndex].options));
     setSelected(null);
   }, []);
 
@@ -686,7 +698,7 @@ export default function BlackCatGame({ onClose }: { onClose: () => void }) {
               <span>THE CAT FELL · QUESTION {falls} · PRESENT SIMPLE</span>
               <h3>{QUESTIONS[questionIndex].prompt}</h3>
               <p>A correct answer keeps your height. A wrong answer returns you to the courtyard.</p>
-              <div>{QUESTIONS[questionIndex].options.map((option) => {
+              <div>{questionOptions.map((option) => {
                 const state = selected === option ? (option === QUESTIONS[questionIndex].correct ? "correct" : "wrong") : "";
                 return <button className={state} disabled={selected !== null} key={option} onClick={() => answerQuestion(option)}>{option}<i>{state === "correct" ? "✓" : state === "wrong" ? "×" : "→"}</i></button>;
               })}</div>

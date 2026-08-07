@@ -133,6 +133,15 @@ function randomItem<T>(items: T[]): T {
   return items[Math.floor(Math.random() * items.length)];
 }
 
+function shuffle<T>(items: readonly T[]): T[] {
+  const shuffled = [...items];
+  for (let index = shuffled.length - 1; index > 0; index -= 1) {
+    const swapIndex = Math.floor(Math.random() * (index + 1));
+    [shuffled[index], shuffled[swapIndex]] = [shuffled[swapIndex], shuffled[index]];
+  }
+  return shuffled;
+}
+
 function buildRoute(): RouteStep[] {
   const length = 7 + Math.floor(Math.random() * 3);
   const locations: RouteStep["location"][] = ["portcullis", "fork2", "fork3"];
@@ -189,7 +198,7 @@ export default function LibraryLabyrinthGame({ onClose }: Props) {
     let available = bank.filter((item) => !usedQuestions.includes(item.id) && item.id !== avoidId);
     if (!available.length) available = bank.filter((item) => item.id !== avoidId);
     const next = randomItem(available);
-    setQuestion(next);
+    setQuestion({ ...next, options: shuffle(next.options) });
     setUsedQuestions((previous) => previous.includes(next.id) ? previous : [...previous, next.id]);
     setSelectedAnswer(null);
     setFeedback(null);
