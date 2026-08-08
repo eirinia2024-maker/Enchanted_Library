@@ -177,6 +177,7 @@ export default function LibraryLabyrinthGame({ onClose }: Props) {
   const [dissolving, setDissolving] = useState(false);
   const [blockedDirections, setBlockedDirections] = useState<Direction[]>([]);
   const [showInstructions, setShowInstructions] = useState(false);
+  const [transitionDirection, setTransitionDirection] = useState<Direction | null>(null);
   const timers = useRef<number[]>([]);
 
   const schedule = useCallback((callback: () => void, delay: number) => {
@@ -220,10 +221,11 @@ export default function LibraryLabyrinthGame({ onClose }: Props) {
     setFeedback(null);
     setDissolving(false);
     setBlockedDirections([]);
+    setTransitionDirection(null);
   }
 
   function selectTopic(topicId: TopicId) {
-    playEffect("book");
+    playEffect("routeReveal");
     setTopic(topicId);
     setRoute(buildRoute());
     setRouteIndex(0);
@@ -236,7 +238,7 @@ export default function LibraryLabyrinthGame({ onClose }: Props) {
 
   function openBook() {
     if (view !== "book") return;
-    playEffect(location === "treasure" ? "win" : "book");
+    playEffect(location === "treasure" ? "treasure" : "scrollOpen");
     if (location === "entrance") {
       setView("topic");
       return;
@@ -258,6 +260,7 @@ export default function LibraryLabyrinthGame({ onClose }: Props) {
       setFeedback("correct");
       setCorrectAnswers((count) => count + 1);
       schedule(() => {
+        playEffect("routeReveal");
         setSelectedAnswer(null);
         setFeedback(null);
         setView("routes");
@@ -267,11 +270,13 @@ export default function LibraryLabyrinthGame({ onClose }: Props) {
 
     const nextWrongCount = wrongAnswers + 1;
     playEffect("wrong");
+    playEffect("spellDissolve");
     setWrongAnswers(nextWrongCount);
     setFeedback("wrong");
     setDissolving(true);
     if (nextWrongCount >= 3) {
       schedule(() => {
+        playEffect("ghostAppear");
         setDissolving(false);
         setQuestion(null);
         setView("ghost");
@@ -289,23 +294,35 @@ export default function LibraryLabyrinthGame({ onClose }: Props) {
     }, 620);
   }
 
+  function travel(direction: Direction, updateScene: () => void, sound: "stepForward" | "deadEnd" = "stepForward") {
+    setTransitionDirection(direction);
+    playEffect(sound);
+    schedule(() => {
+      updateScene();
+      schedule(() => setTransitionDirection(null), 260);
+    }, 270);
+  }
+
   function move(direction: Direction) {
-    if (view !== "routes") return;
-    playEffect("move");
+    if (view !== "routes" || transitionDirection) return;
 
     if (location === "entrance") {
       const first = route[0];
       if (!first) return;
-      setLocation(first.location);
-      setView("book");
+      travel(direction, () => {
+        setLocation(first.location);
+        setView("book");
+      });
       return;
     }
 
     if (location === "deadEnd") {
       const returnStep = route[routeIndex];
       if (!returnStep) return;
-      setLocation(returnStep.location);
-      setView("routes");
+      travel(direction, () => {
+        setLocation(returnStep.location);
+        setView("routes");
+      });
       return;
     }
 
@@ -313,21 +330,28 @@ export default function LibraryLabyrinthGame({ onClose }: Props) {
     if (!currentStep) return;
     if (direction !== currentStep.correctDirection) {
       setBlockedDirections((items) => items.includes(direction) ? items : [...items, direction]);
-      setLocation("deadEnd");
-      setView("book");
+      travel(direction, () => {
+        setLocation("deadEnd");
+        setView("book");
+      }, "deadEnd");
       return;
     }
 
     const nextIndex = routeIndex + 1;
     setBlockedDirections([]);
     if (nextIndex >= route.length) {
-      setLocation("treasure");
-      setView("book");
+      travel(direction, () => {
+        playEffect("treasure");
+        setLocation("treasure");
+        setView("book");
+      });
       return;
     }
-    setRouteIndex(nextIndex);
-    setLocation(route[nextIndex].location);
-    setView("book");
+    travel(direction, () => {
+      setRouteIndex(nextIndex);
+      setLocation(route[nextIndex].location);
+      setView("book");
+    });
   }
 
   const directionOptions = useMemo<Direction[]>(() => {
@@ -357,7 +381,7 @@ export default function LibraryLabyrinthGame({ onClose }: Props) {
           </div>
         </header>
 
-        <main className={`labyrinth-stage view-${view} location-${location}`} style={frameStyle}>
+        <main className={`labyrinth-stage view-${view} location-${location} ${transitionDirection ? `is-transitioning transition-${transitionDirection}` : ""}`} style={frameStyle}>
           <span className="labyrinth-room-name">{LOCATION_NAMES[location]}</span>
 
           {view === "book" && (

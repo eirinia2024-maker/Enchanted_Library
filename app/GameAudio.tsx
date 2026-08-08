@@ -2,9 +2,30 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 
-export type GameSound = "jump" | "fall" | "correct" | "wrong" | "pour" | "book" | "move" | "win";
+export type GameSound =
+  | "jump"
+  | "fall"
+  | "correct"
+  | "wrong"
+  | "pour"
+  | "book"
+  | "move"
+  | "win"
+  | "topicSelect"
+  | "wizardHappy"
+  | "wizardWrong"
+  | "wordComplete"
+  | "steam"
+  | "scrollOpen"
+  | "routeReveal"
+  | "stepForward"
+  | "deadEnd"
+  | "ghostAppear"
+  | "treasure"
+  | "spellDissolve";
 
 type Note = { frequency: number; end?: number; delay?: number; duration: number; type?: OscillatorType };
+type NoisePattern = { duration: number; delay?: number; filter?: number; gain?: number };
 
 const SOUND_PATTERNS: Record<GameSound, Note[]> = {
   jump: [{ frequency: 360, end: 690, duration: .13, type: "sine" }],
@@ -15,9 +36,51 @@ const SOUND_PATTERNS: Record<GameSound, Note[]> = {
   book: [{ frequency: 440, duration: .09 }, { frequency: 660, delay: .07, duration: .11 }, { frequency: 920, delay: .15, duration: .16 }],
   move: [{ frequency: 230, end: 390, duration: .15, type: "triangle" }],
   win: [{ frequency: 523, duration: .13 }, { frequency: 659, delay: .11, duration: .13 }, { frequency: 784, delay: .22, duration: .13 }, { frequency: 1047, delay: .34, duration: .3 }],
+  topicSelect: [{ frequency: 392, duration: .08 }, { frequency: 587, delay: .08, duration: .1 }, { frequency: 784, delay: .17, duration: .16 }],
+  wizardHappy: [{ frequency: 620, duration: .08 }, { frequency: 830, delay: .07, duration: .1 }],
+  wizardWrong: [{ frequency: 210, end: 120, duration: .22, type: "square" }],
+  wordComplete: [{ frequency: 440, duration: .07 }, { frequency: 554, delay: .07, duration: .08 }, { frequency: 659, delay: .14, duration: .09 }, { frequency: 880, delay: .23, duration: .18 }],
+  steam: [],
+  scrollOpen: [{ frequency: 330, end: 480, duration: .18, type: "triangle" }],
+  routeReveal: [{ frequency: 480, duration: .08 }, { frequency: 720, delay: .08, duration: .12 }],
+  stepForward: [{ frequency: 260, end: 520, duration: .2, type: "triangle" }],
+  deadEnd: [{ frequency: 160, end: 80, duration: .28, type: "sawtooth" }],
+  ghostAppear: [{ frequency: 260, end: 410, duration: .45, type: "sine" }, { frequency: 520, end: 380, delay: .08, duration: .42, type: "triangle" }],
+  treasure: [{ frequency: 659, duration: .08 }, { frequency: 988, delay: .08, duration: .12 }, { frequency: 1318, delay: .18, duration: .2 }],
+  spellDissolve: [{ frequency: 420, end: 140, duration: .26, type: "triangle" }],
+};
+
+const NOISE_PATTERNS: Partial<Record<GameSound, NoisePattern[]>> = {
+  steam: [{ duration: .32, filter: 1500, gain: .16 }],
+  scrollOpen: [{ duration: .2, filter: 2200, gain: .1 }],
+  stepForward: [{ duration: .18, filter: 900, gain: .08 }],
+  deadEnd: [{ duration: .22, filter: 500, gain: .12 }],
+  ghostAppear: [{ duration: .5, filter: 1800, gain: .08 }],
+  spellDissolve: [{ duration: .28, filter: 2600, gain: .1 }],
 };
 
 const INITIAL_VOLUME = .18;
+
+function playNoise(context: AudioContext, pattern: NoisePattern, volume: number, now: number) {
+  const start = now + (pattern.delay ?? 0);
+  const sampleCount = Math.max(1, Math.floor(context.sampleRate * pattern.duration));
+  const buffer = context.createBuffer(1, sampleCount, context.sampleRate);
+  const output = buffer.getChannelData(0);
+  for (let index = 0; index < sampleCount; index += 1) output[index] = Math.random() * 2 - 1;
+  const source = context.createBufferSource();
+  const filter = context.createBiquadFilter();
+  const gain = context.createGain();
+  filter.type = "bandpass";
+  filter.frequency.setValueAtTime(pattern.filter ?? 1200, start);
+  gain.gain.setValueAtTime(Math.min(.12, volume * (pattern.gain ?? .12)), start);
+  gain.gain.exponentialRampToValueAtTime(.0001, start + pattern.duration);
+  source.buffer = buffer;
+  source.connect(filter);
+  filter.connect(gain);
+  gain.connect(context.destination);
+  source.start(start);
+  source.stop(start + pattern.duration);
+}
 
 export function useGameAudio(src: string) {
   const musicRef = useRef<HTMLAudioElement | null>(null);
@@ -105,6 +168,7 @@ export function useGameAudio(src: string) {
       oscillator.start(start);
       oscillator.stop(start + note.duration + .02);
     });
+    NOISE_PATTERNS[sound]?.forEach((pattern) => playNoise(context, pattern, volume, now));
   }, [muted, volume]);
 
   return { volume, muted, playing, setVolume, toggleMuted, startMusic, playEffect };

@@ -1,7 +1,7 @@
 "use client";
 
 import Image from "next/image";
-import { useCallback, useEffect, useMemo, useState, type CSSProperties } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState, type CSSProperties } from "react";
 import GameInstructions from "./GameInstructions";
 import { GameAudioControls, useGameAudio } from "./GameAudio";
 import { assetPath } from "./assetPath";
@@ -11,6 +11,7 @@ type Topic = { id: string; title: string; icon: string; color: string; words: Wo
 type Phase = "topics" | "playing" | "won" | "lost";
 type Effect = "idle" | "pour" | "fire" | "success";
 type LetterCase = "upper" | "lower";
+type WizardReaction = "idle" | "casting" | "happy" | "surprised" | "worried" | "win" | "tired";
 
 const TOPICS: Topic[] = [
   {
@@ -77,6 +78,15 @@ const TOPICS: Topic[] = [
 
 const ALPHABET = "ABCDEFGHIJKLMNOPQRSTUVWXYZ".split("");
 const ROUND_SIZE = 6;
+const WIZARD_BACKGROUNDS: Record<WizardReaction, string> = {
+  idle: assetPath("/assets/alchemy-lab-neutral-v2.png"),
+  casting: assetPath("/assets/alchemy-lab-casting-v2.png"),
+  happy: assetPath("/assets/alchemy-lab-happy-v2.png"),
+  surprised: assetPath("/assets/alchemy-lab-surprised-v2.png"),
+  worried: assetPath("/assets/alchemy-lab-worried-v2.png"),
+  win: assetPath("/assets/alchemy-lab-happy-v2.png"),
+  tired: assetPath("/assets/alchemy-lab-tired-v2.png"),
+};
 
 function shuffle<T>(items: T[]) {
   const copy = [...items];
@@ -101,6 +111,11 @@ export default function AlchemyWordGame({ onClose }: { onClose: () => void }) {
   const [message, setMessage] = useState("Выбери пробирку или нажми букву");
   const [letterCase, setLetterCase] = useState<LetterCase>("upper");
   const [showInstructions, setShowInstructions] = useState(false);
+  const [wizardReaction, setWizardReaction] = useState<WizardReaction>("idle");
+  const [previousWizardReaction, setPreviousWizardReaction] = useState<WizardReaction | null>(null);
+  const wizardTimer = useRef<number | null>(null);
+  const fadeTimer = useRef<number | null>(null);
+  const wizardReactionRef = useRef<WizardReaction>("idle");
   const currentWord = round[wordIndex];
 
   const tubeColors = useMemo(() => ALPHABET.map((_, index) => ({
@@ -108,8 +123,51 @@ export default function AlchemyWordGame({ onClose }: { onClose: () => void }) {
     glow: `hsl(${(index * 47 + 178) % 360} 90% 72%)`,
   })), []);
 
+  const applyWizardReaction = useCallback((reaction: WizardReaction) => {
+    if (wizardReactionRef.current !== reaction) {
+      setPreviousWizardReaction(wizardReactionRef.current);
+      if (fadeTimer.current) window.clearTimeout(fadeTimer.current);
+      fadeTimer.current = window.setTimeout(() => {
+        setPreviousWizardReaction(null);
+        fadeTimer.current = null;
+      }, 340);
+      wizardReactionRef.current = reaction;
+    }
+    setWizardReaction(reaction);
+  }, []);
+
+  const showWizardReaction = useCallback((reaction: WizardReaction, duration = 760) => {
+    if (wizardTimer.current) window.clearTimeout(wizardTimer.current);
+    applyWizardReaction(reaction);
+    if (reaction === "win" || reaction === "tired") return;
+    wizardTimer.current = window.setTimeout(() => {
+      applyWizardReaction("idle");
+      wizardTimer.current = null;
+    }, duration);
+  }, [applyWizardReaction]);
+
+  const showWrongWizardReaction = useCallback((isFinalMistake: boolean) => {
+    if (wizardTimer.current) window.clearTimeout(wizardTimer.current);
+    applyWizardReaction("surprised");
+    wizardTimer.current = window.setTimeout(() => {
+      applyWizardReaction(isFinalMistake ? "tired" : "worried");
+      if (!isFinalMistake) {
+        wizardTimer.current = window.setTimeout(() => {
+          applyWizardReaction("idle");
+          wizardTimer.current = null;
+        }, 760);
+      }
+    }, 360);
+  }, [applyWizardReaction]);
+
+  useEffect(() => () => {
+    if (wizardTimer.current) window.clearTimeout(wizardTimer.current);
+    if (fadeTimer.current) window.clearTimeout(fadeTimer.current);
+  }, []);
+
   const startTopic = (selected: Topic) => {
-    playEffect("book");
+    playEffect("topicSelect");
+    showWizardReaction("casting", 900);
     setTopic(selected);
     setRound(shuffle(selected.words).slice(0, ROUND_SIZE));
     setWordIndex(0);
@@ -133,10 +191,13 @@ export default function AlchemyWordGame({ onClose }: { onClose: () => void }) {
       const next = progress + lower;
       setProgress(next);
       setEffect(next === currentWord.en ? "success" : "pour");
+      showWizardReaction(next === currentWord.en ? "casting" : "happy", next === currentWord.en ? 1200 : 650);
       setMessage(next === currentWord.en ? "Зелье готово!" : "Верно — добавляй дальше");
       if (next === currentWord.en) {
+        playEffect("wordComplete");
         window.setTimeout(() => {
           if (wordIndex + 1 >= round.length) {
+            applyWizardReaction("win");
             playEffect("win");
             setPhase("won");
           } else {
@@ -144,6 +205,7 @@ export default function AlchemyWordGame({ onClose }: { onClose: () => void }) {
             setProgress("");
             setEffect("idle");
             setActiveLetter("");
+            applyWizardReaction("idle");
             setMessage("Новое слово — выбери пробирку или нажми букву");
           }
         }, 950);
@@ -155,16 +217,22 @@ export default function AlchemyWordGame({ onClose }: { onClose: () => void }) {
 
     const nextMistakes = mistakes + 1;
     playEffect("wrong");
+    playEffect("wizardWrong");
+    playEffect("steam");
+    showWrongWizardReaction(nextMistakes >= 5);
     setMistakes(nextMistakes);
     setEffect("fire");
     setMessage("Неверный ингредиент — рецепт сброшен!");
     window.setTimeout(() => {
       setProgress("");
       setActiveLetter("");
-      if (nextMistakes >= 5) setPhase("lost");
+      if (nextMistakes >= 5) {
+        applyWizardReaction("tired");
+        setPhase("lost");
+      }
       else setEffect("idle");
     }, 900);
-  }, [currentWord, effect, mistakes, phase, playEffect, progress, round.length, wordIndex]);
+  }, [applyWizardReaction, currentWord, effect, mistakes, phase, playEffect, progress, round.length, showWizardReaction, showWrongWizardReaction, wordIndex]);
 
   useEffect(() => {
     const handleKeyboardLetter = (event: KeyboardEvent) => {
@@ -191,9 +259,12 @@ export default function AlchemyWordGame({ onClose }: { onClose: () => void }) {
     </button>
   );
 
+  const wizardBackground = WIZARD_BACKGROUNDS[wizardReaction];
+  const previousWizardBackground = previousWizardReaction ? WIZARD_BACKGROUNDS[previousWizardReaction] : null;
+
   return (
     <div className="alchemy-layer" style={{
-      "--alchemy-lab-background": `url("${assetPath("/assets/alchemist-word-lab-v1.png")}")`,
+      "--alchemy-lab-background": `url("${WIZARD_BACKGROUNDS.idle}")`,
       "--alchemy-flame-one": `url("${assetPath("/assets/alchemy-flame-1-v1.png")}")`,
       "--alchemy-flame-two": `url("${assetPath("/assets/alchemy-flame-2-v1.png")}")`,
       "--alchemy-flame-three": `url("${assetPath("/assets/alchemy-flame-3-v1.png")}")`,
@@ -229,7 +300,9 @@ export default function AlchemyWordGame({ onClose }: { onClose: () => void }) {
             </div>
           </div>
         ) : (
-          <div className={`alchemy-lab effect-${effect}`}>
+          <div className={`alchemy-lab effect-${effect} wizard-${wizardReaction}`}>
+            <div className="alchemy-lab-bg alchemy-lab-bg-current" key={`current-${wizardReaction}`} style={{ backgroundImage: `url("${wizardBackground}")` }} aria-hidden="true" />
+            {previousWizardBackground && <div className="alchemy-lab-bg alchemy-lab-bg-previous" key={`previous-${previousWizardReaction}`} style={{ backgroundImage: `url("${previousWizardBackground}")` }} aria-hidden="true" />}
             <div className="alchemy-status">
               <span>{topic && <Image src={topic.icon} alt="" width={28} height={28} />} {topic?.title}</span>
               <strong>Слово {Math.min(wordIndex + 1, ROUND_SIZE)} / {ROUND_SIZE}</strong>
@@ -244,6 +317,8 @@ export default function AlchemyWordGame({ onClose }: { onClose: () => void }) {
 
             {currentWord && (
               <>
+                {wizardReaction === "casting" && <><div className="alchemy-casting-beam" aria-hidden="true" /><div className="alchemy-cauldron-bloom" aria-hidden="true" /></>}
+
                 <div className="alchemy-scroll-copy">
                   <small>ПЕРЕВЕДИ НА АНГЛИЙСКИЙ</small>
                   <strong className={currentWord.ru.length >= 12 ? "very-long" : currentWord.ru.length >= 9 ? "long" : ""}>{currentWord.ru}</strong>
