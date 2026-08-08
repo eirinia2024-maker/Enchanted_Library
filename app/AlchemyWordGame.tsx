@@ -78,14 +78,15 @@ const TOPICS: Topic[] = [
 
 const ALPHABET = "ABCDEFGHIJKLMNOPQRSTUVWXYZ".split("");
 const ROUND_SIZE = 6;
-const WIZARD_BACKGROUNDS: Record<WizardReaction, string> = {
-  idle: assetPath("/assets/alchemy-lab-neutral-v2.png"),
-  casting: assetPath("/assets/alchemy-lab-casting-v2.png"),
-  happy: assetPath("/assets/alchemy-lab-happy-v2.png"),
-  surprised: assetPath("/assets/alchemy-lab-surprised-v2.png"),
-  worried: assetPath("/assets/alchemy-lab-worried-v2.png"),
-  win: assetPath("/assets/alchemy-lab-happy-v2.png"),
-  tired: assetPath("/assets/alchemy-lab-tired-v2.png"),
+const ALCHEMY_LAB_BACKGROUND = assetPath("/assets/alchemy-lab-empty-v2.png");
+const WIZARD_OVERLAYS: Record<WizardReaction, string> = {
+  idle: assetPath("/assets/alchemist-overlay-neutral.png"),
+  casting: assetPath("/assets/alchemist-overlay-casting.png"),
+  happy: assetPath("/assets/alchemist-overlay-happy.png"),
+  surprised: assetPath("/assets/alchemist-overlay-surprised.png"),
+  worried: assetPath("/assets/alchemist-overlay-worried.png"),
+  win: assetPath("/assets/alchemist-overlay-happy.png"),
+  tired: assetPath("/assets/alchemist-overlay-tired.png"),
 };
 
 function shuffle<T>(items: T[]) {
@@ -112,9 +113,7 @@ export default function AlchemyWordGame({ onClose }: { onClose: () => void }) {
   const [letterCase, setLetterCase] = useState<LetterCase>("upper");
   const [showInstructions, setShowInstructions] = useState(false);
   const [wizardReaction, setWizardReaction] = useState<WizardReaction>("idle");
-  const [previousWizardReaction, setPreviousWizardReaction] = useState<WizardReaction | null>(null);
   const wizardTimer = useRef<number | null>(null);
-  const fadeTimer = useRef<number | null>(null);
   const wizardReactionRef = useRef<WizardReaction>("idle");
   const currentWord = round[wordIndex];
 
@@ -124,15 +123,7 @@ export default function AlchemyWordGame({ onClose }: { onClose: () => void }) {
   })), []);
 
   const applyWizardReaction = useCallback((reaction: WizardReaction) => {
-    if (wizardReactionRef.current !== reaction) {
-      setPreviousWizardReaction(wizardReactionRef.current);
-      if (fadeTimer.current) window.clearTimeout(fadeTimer.current);
-      fadeTimer.current = window.setTimeout(() => {
-        setPreviousWizardReaction(null);
-        fadeTimer.current = null;
-      }, 340);
-      wizardReactionRef.current = reaction;
-    }
+    wizardReactionRef.current = reaction;
     setWizardReaction(reaction);
   }, []);
 
@@ -162,7 +153,13 @@ export default function AlchemyWordGame({ onClose }: { onClose: () => void }) {
 
   useEffect(() => () => {
     if (wizardTimer.current) window.clearTimeout(wizardTimer.current);
-    if (fadeTimer.current) window.clearTimeout(fadeTimer.current);
+  }, []);
+
+  useEffect(() => {
+    [ALCHEMY_LAB_BACKGROUND, ...Object.values(WIZARD_OVERLAYS)].forEach((src) => {
+      const image = new window.Image();
+      image.src = src;
+    });
   }, []);
 
   const startTopic = (selected: Topic) => {
@@ -259,12 +256,11 @@ export default function AlchemyWordGame({ onClose }: { onClose: () => void }) {
     </button>
   );
 
-  const wizardBackground = WIZARD_BACKGROUNDS[wizardReaction];
-  const previousWizardBackground = previousWizardReaction ? WIZARD_BACKGROUNDS[previousWizardReaction] : null;
+  const wizardOverlay = WIZARD_OVERLAYS[wizardReaction];
 
   return (
     <div className="alchemy-layer" style={{
-      "--alchemy-lab-background": `url("${WIZARD_BACKGROUNDS.idle}")`,
+      "--alchemy-lab-background": `url("${ALCHEMY_LAB_BACKGROUND}")`,
       "--alchemy-flame-one": `url("${assetPath("/assets/alchemy-flame-1-v1.png")}")`,
       "--alchemy-flame-two": `url("${assetPath("/assets/alchemy-flame-2-v1.png")}")`,
       "--alchemy-flame-three": `url("${assetPath("/assets/alchemy-flame-3-v1.png")}")`,
@@ -301,8 +297,7 @@ export default function AlchemyWordGame({ onClose }: { onClose: () => void }) {
           </div>
         ) : (
           <div className={`alchemy-lab effect-${effect} wizard-${wizardReaction}`}>
-            <div className="alchemy-lab-bg alchemy-lab-bg-current" key={`current-${wizardReaction}`} style={{ backgroundImage: `url("${wizardBackground}")` }} aria-hidden="true" />
-            {previousWizardBackground && <div className="alchemy-lab-bg alchemy-lab-bg-previous" key={`previous-${previousWizardReaction}`} style={{ backgroundImage: `url("${previousWizardBackground}")` }} aria-hidden="true" />}
+            <div className="alchemy-wizard-overlay" key={wizardReaction} style={{ backgroundImage: `url("${wizardOverlay}")` }} aria-hidden="true" />
             <div className="alchemy-status">
               <span>{topic && <Image src={topic.icon} alt="" width={28} height={28} />} {topic?.title}</span>
               <strong>Слово {Math.min(wordIndex + 1, ROUND_SIZE)} / {ROUND_SIZE}</strong>
